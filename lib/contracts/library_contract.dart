@@ -6,7 +6,7 @@ abstract class LibraryViewContract {
 
 abstract class LibraryPresenterContract {
   void loadMangas();
-  void filterByStatus(String status);
+  void filterByStatus(List<MangaStatus> status);
   void filterByGenres(List<String> genres);
-  void sortBy(String criteria);
+  void sortBy(int criteria);
 }

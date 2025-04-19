@@ -1,14 +1,16 @@
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
-import '../contracts/library_contract.dart';
-import '../models/manga.dart';
+import 'package:yomuyomu/contracts/library_contract.dart';
+import 'package:yomuyomu/models/manga.dart';
 
 class LibraryPresenter implements LibraryPresenterContract {
   final LibraryViewContract view;
 
   List<Manga> _allMangas = [];
+  List<Manga> filtered = [];
 
   LibraryPresenter(this.view);
 
@@ -17,20 +19,6 @@ class LibraryPresenter implements LibraryPresenterContract {
     // Mock data
     _allMangas = [
       Manga(
-        title: "One Piece",
-        author: "Eiichiro Oda",
-        sinopsis:
-            "Un joven pirata sueña con convertirse en el Rey de los Piratas.",
-        rating: 4.9,
-        startPublicationDate: DateTime(1997, 7, 22),
-        nextPublicationDate: DateTime(2025, 4, 21),
-        genres: ["Action", "Fantasy"],
-        status: "Pending",
-        chapterProgress: 1080,
-        isStarred: true,
-        filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
-      ),
-      Manga(
         title: "Attack on Titan",
         author: "Hajime Isayama",
         sinopsis:
@@ -38,12 +26,15 @@ class LibraryPresenter implements LibraryPresenterContract {
         rating: 4.8,
         startPublicationDate: DateTime(2009, 9, 9),
         nextPublicationDate: DateTime(2021, 4, 9),
+        lastReadDate: DateTime(2025, 5, 1),
         genres: ["Action", "Drama", "Mystery"],
-        status: "Completed",
+        status: MangaStatus.completed,
+        totalChaptersAmount: 139,
         chapterProgress: 139,
         isStarred: true,
         filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
       ),
+
       Manga(
         title: "My Hero Academia",
         author: "Kohei Horikoshi",
@@ -51,12 +42,15 @@ class LibraryPresenter implements LibraryPresenterContract {
         rating: 4.5,
         startPublicationDate: DateTime(2014, 7, 7),
         nextPublicationDate: DateTime(2025, 4, 18),
+        lastReadDate: DateTime(2025, 5, 1),
         genres: ["Action", "Superhero", "Shonen"],
-        status: "Pending",
+        status: MangaStatus.ongoing,
+        totalChaptersAmount: 420,
         chapterProgress: 420,
         isStarred: false,
         filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
       ),
+
       Manga(
         title: "Tokyo Revengers",
         author: "Ken Wakui",
@@ -64,25 +58,15 @@ class LibraryPresenter implements LibraryPresenterContract {
         rating: 4.2,
         startPublicationDate: DateTime(2017, 3, 1),
         nextPublicationDate: DateTime(2022, 11, 16),
+        lastReadDate: DateTime(2025, 5, 1),
         genres: ["Action", "Drama", "Time Travel"],
-        status: "Completed",
+        status: MangaStatus.completed,
+        totalChaptersAmount: 278,
         chapterProgress: 278,
         isStarred: false,
         filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
       ),
-      Manga(
-        title: "Chainsaw Man",
-        author: "Tatsuki Fujimoto",
-        sinopsis: "Un cazador de demonios con motosierra en la cabeza.",
-        rating: 4.6,
-        startPublicationDate: DateTime(2018, 12, 3),
-        nextPublicationDate: DateTime(2025, 4, 23),
-        genres: ["Horror", "Action", "Supernatural"],
-        status: "Pending",
-        chapterProgress: 165,
-        isStarred: true,
-        filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
-      ),
+
       Manga(
         title: "Death Note",
         author: "Tsugumi Ohba",
@@ -90,12 +74,15 @@ class LibraryPresenter implements LibraryPresenterContract {
         rating: 4.9,
         startPublicationDate: DateTime(2003, 12, 1),
         nextPublicationDate: DateTime(2006, 5, 15),
+        lastReadDate: DateTime(2025, 5, 1),
         genres: ["Thriller", "Mystery", "Supernatural"],
-        status: "Completed",
+        status: MangaStatus.completed,
+        totalChaptersAmount: 108,
         chapterProgress: 108,
         isStarred: true,
         filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
       ),
+
       Manga(
         title: "Jujutsu Kaisen",
         author: "Gege Akutami",
@@ -104,12 +91,15 @@ class LibraryPresenter implements LibraryPresenterContract {
         rating: 4.7,
         startPublicationDate: DateTime(2018, 3, 5),
         nextPublicationDate: DateTime(2025, 4, 22),
+        lastReadDate: DateTime(2025, 5, 1),
         genres: ["Action", "Supernatural", "Dark Fantasy"],
-        status: "Pending",
+        status: MangaStatus.ongoing,
+        totalChaptersAmount: 260,
         chapterProgress: 260,
         isStarred: false,
         filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
       ),
+
       Manga(
         title: "Demon Slayer",
         author: "Koyoharu Gotouge",
@@ -117,12 +107,15 @@ class LibraryPresenter implements LibraryPresenterContract {
         rating: 4.8,
         startPublicationDate: DateTime(2016, 2, 15),
         nextPublicationDate: DateTime(2020, 5, 18),
+        lastReadDate: DateTime(2025, 5, 1),
         genres: ["Action", "Historical", "Supernatural"],
-        status: "Completed",
+        status: MangaStatus.completed,
+        totalChaptersAmount: 205,
         chapterProgress: 205,
         isStarred: true,
         filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
       ),
+
       Manga(
         title: "Spy x Family",
         author: "Tatsuya Endo",
@@ -130,12 +123,15 @@ class LibraryPresenter implements LibraryPresenterContract {
         rating: 4.6,
         startPublicationDate: DateTime(2019, 3, 25),
         nextPublicationDate: DateTime(2025, 4, 22),
+        lastReadDate: DateTime(2025, 5, 1),
         genres: ["Comedy", "Action", "Slice of Life"],
-        status: "Pending",
+        status: MangaStatus.ongoing,
+        totalChaptersAmount: 95,
         chapterProgress: 95,
         isStarred: true,
         filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
       ),
+
       Manga(
         title: "Blue Lock",
         author: "Muneyuki Kaneshiro",
@@ -143,12 +139,15 @@ class LibraryPresenter implements LibraryPresenterContract {
         rating: 4.3,
         startPublicationDate: DateTime(2018, 8, 1),
         nextPublicationDate: DateTime(2025, 4, 20),
+        lastReadDate: DateTime(2025, 5, 1),
         genres: ["Sports", "Psychological", "Drama"],
-        status: "Pending",
+        status: MangaStatus.ongoing,
+        totalChaptersAmount: 260,
         chapterProgress: 260,
         isStarred: false,
         filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
       ),
+
       Manga(
         title: "Solo Leveling",
         author: "Chugong",
@@ -156,12 +155,15 @@ class LibraryPresenter implements LibraryPresenterContract {
         rating: 4.8,
         startPublicationDate: DateTime(2018, 3, 4),
         nextPublicationDate: DateTime(2021, 12, 29),
+        lastReadDate: DateTime(2025, 5, 1),
         genres: ["Action", "Fantasy", "RPG"],
-        status: "Completed",
+        status: MangaStatus.completed,
+        totalChaptersAmount: 179,
         chapterProgress: 179,
         isStarred: true,
         filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
       ),
+
       Manga(
         title: "Noragami",
         author: "Adachitoka",
@@ -170,12 +172,15 @@ class LibraryPresenter implements LibraryPresenterContract {
         rating: 4.4,
         startPublicationDate: DateTime(2010, 12, 1),
         nextPublicationDate: DateTime(2025, 4, 25),
+        lastReadDate: DateTime(2025, 5, 1),
         genres: ["Action", "Supernatural", "Comedy"],
-        status: "Pending",
+        status: MangaStatus.ongoing,
+        totalChaptersAmount: 107,
         chapterProgress: 107,
         isStarred: false,
         filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
       ),
+
       Manga(
         title: "Black Clover",
         author: "Yūki Tabata",
@@ -183,12 +188,15 @@ class LibraryPresenter implements LibraryPresenterContract {
         rating: 4.5,
         startPublicationDate: DateTime(2015, 2, 16),
         nextPublicationDate: DateTime(2025, 4, 21),
+        lastReadDate: DateTime(2025, 5, 1),
         genres: ["Magic", "Adventure", "Shonen"],
-        status: "Pending",
+        status: MangaStatus.ongoing,
+        totalChaptersAmount: 370,
         chapterProgress: 370,
         isStarred: false,
         filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
       ),
+
       Manga(
         title: "Dr. Stone",
         author: "Riichiro Inagaki",
@@ -196,12 +204,15 @@ class LibraryPresenter implements LibraryPresenterContract {
         rating: 4.6,
         startPublicationDate: DateTime(2017, 3, 6),
         nextPublicationDate: DateTime(2022, 3, 7),
+        lastReadDate: DateTime(2025, 5, 1),
         genres: ["Science", "Adventure", "Shonen"],
-        status: "Completed",
+        status: MangaStatus.completed,
+        totalChaptersAmount: 232,
         chapterProgress: 232,
         isStarred: false,
         filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
       ),
+
       Manga(
         title: "Bakuman",
         author: "Tsugumi Ohba",
@@ -209,8 +220,10 @@ class LibraryPresenter implements LibraryPresenterContract {
         rating: 4.7,
         startPublicationDate: DateTime(2008, 8, 11),
         nextPublicationDate: DateTime(2012, 4, 23),
+        lastReadDate: DateTime(2025, 5, 1),
         genres: ["Drama", "Slice of Life", "Shonen"],
-        status: "Completed",
+        status: MangaStatus.completed,
+        totalChaptersAmount: 176,
         chapterProgress: 176,
         isStarred: true,
         filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
@@ -219,44 +232,73 @@ class LibraryPresenter implements LibraryPresenterContract {
     view.updateMangaList(_allMangas);
   }
 
+  void showAll() {
+    filtered = _allMangas;
+    view.updateMangaList(_allMangas);
+  }
+
   @override
-  void filterByStatus(String status) {
-    final filtered = _allMangas.where((m) => m.status == status).toList();
+  void filterByStatus(List<MangaStatus> statusList) {
+    filtered = _allMangas.where((m) => statusList.contains(m.status)).toList();
     view.updateMangaList(filtered);
   }
 
   @override
   void filterByGenres(List<String> genres) {
-    final filtered =
+    filtered =
         _allMangas
             .where((m) => m.genres.any((g) => genres.contains(g)))
             .toList();
     view.updateMangaList(filtered);
   }
 
+  void filterMangasByTitle(String query) {
+    filtered =
+        _allMangas.where((manga) {
+          return manga.title.toLowerCase().contains(query.toLowerCase()) ||
+              manga.author.toLowerCase().contains(query.toLowerCase());
+        }).toList();
+    if (filtered.isEmpty) {
+      filtered = _allMangas;
+    } else {
+      view.updateMangaList(filtered);
+    }
+  }
+
   @override
-  void sortBy(String criteria) {
+  void sortBy(int criteria) {
     List<Manga> sorted = [..._allMangas];
+    if (filtered.isNotEmpty) {
+      sorted = [...filtered];
+    }
     switch (criteria) {
-      case "Alphabetically":
+      case 0: //Alphabetically
         sorted.sort((a, b) => a.title.compareTo(b.title));
         break;
-      // Agrega otros criterios
+      case 1: //Total Chapters / Chapters
+        sorted.sort(
+          (a, b) => b.totalChaptersAmount.compareTo(a.chapterProgress),
+        );
+        break;
+      case 2: //Total Chapters / Chapters
+        sorted.sort((a, b) => b.rating.compareTo(a.rating));
+        break;
+      // add more criteria
     }
     view.updateMangaList(sorted);
   }
 
   Future<String> getValidfilePath(String filename) async {
-  Directory directory;
+    Directory directory;
 
-  if (Platform.isAndroid) {
-    directory = await getTemporaryDirectory();
-  } else if (Platform.isWindows) {
-    directory = await getApplicationDocumentsDirectory();
-  } else {
-    throw UnsupportedError('Unsupported platform');
+    if (Platform.isAndroid) {
+      directory = await getTemporaryDirectory();
+    } else if (Platform.isWindows) {
+      directory = await getApplicationDocumentsDirectory();
+    } else {
+      throw UnsupportedError('Unsupported platform');
+    }
+
+    return '${directory.path}/$filename';
   }
-
-  return '${directory.path}/$filename';
-}
 }
