@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:yomuyomu/contracts/library_contract.dart';
@@ -32,6 +31,7 @@ class LibraryPresenter implements LibraryPresenterContract {
         totalChaptersAmount: 139,
         chapterProgress: 139,
         isStarred: true,
+        isPending: false,
         filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
       ),
 
@@ -48,6 +48,7 @@ class LibraryPresenter implements LibraryPresenterContract {
         totalChaptersAmount: 420,
         chapterProgress: 420,
         isStarred: false,
+        isPending: false,
         filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
       ),
 
@@ -64,6 +65,7 @@ class LibraryPresenter implements LibraryPresenterContract {
         totalChaptersAmount: 278,
         chapterProgress: 278,
         isStarred: false,
+        isPending: false,
         filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
       ),
 
@@ -80,6 +82,7 @@ class LibraryPresenter implements LibraryPresenterContract {
         totalChaptersAmount: 108,
         chapterProgress: 108,
         isStarred: true,
+        isPending: false,
         filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
       ),
 
@@ -97,6 +100,7 @@ class LibraryPresenter implements LibraryPresenterContract {
         totalChaptersAmount: 260,
         chapterProgress: 260,
         isStarred: false,
+        isPending: false,
         filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
       ),
 
@@ -113,6 +117,7 @@ class LibraryPresenter implements LibraryPresenterContract {
         totalChaptersAmount: 205,
         chapterProgress: 205,
         isStarred: true,
+        isPending: false,
         filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
       ),
 
@@ -129,6 +134,7 @@ class LibraryPresenter implements LibraryPresenterContract {
         totalChaptersAmount: 95,
         chapterProgress: 95,
         isStarred: true,
+        isPending: false,
         filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
       ),
 
@@ -145,6 +151,7 @@ class LibraryPresenter implements LibraryPresenterContract {
         totalChaptersAmount: 260,
         chapterProgress: 260,
         isStarred: false,
+        isPending: true,
         filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
       ),
 
@@ -161,6 +168,7 @@ class LibraryPresenter implements LibraryPresenterContract {
         totalChaptersAmount: 179,
         chapterProgress: 179,
         isStarred: true,
+        isPending: false,
         filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
       ),
 
@@ -178,6 +186,7 @@ class LibraryPresenter implements LibraryPresenterContract {
         totalChaptersAmount: 107,
         chapterProgress: 107,
         isStarred: false,
+        isPending: false,
         filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
       ),
 
@@ -194,6 +203,7 @@ class LibraryPresenter implements LibraryPresenterContract {
         totalChaptersAmount: 370,
         chapterProgress: 370,
         isStarred: false,
+        isPending: false,
         filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
       ),
 
@@ -210,6 +220,7 @@ class LibraryPresenter implements LibraryPresenterContract {
         totalChaptersAmount: 232,
         chapterProgress: 232,
         isStarred: false,
+        isPending: false,
         filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
       ),
 
@@ -226,6 +237,7 @@ class LibraryPresenter implements LibraryPresenterContract {
         totalChaptersAmount: 176,
         chapterProgress: 176,
         isStarred: true,
+        isPending: false,
         filePath: await getValidfilePath("Chainsaw Man 200.cbz"),
       ),
     ];

@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:intl/intl.dart';
+
 import 'package:flutter/material.dart';
 import 'package:yomuyomu/contracts/manga_contract.dart';
 import 'package:yomuyomu/presenters/manga_presenter.dart';
@@ -8,6 +10,8 @@ import 'package:yomuyomu/contracts/library_contract.dart';
 import 'package:yomuyomu/presenters/library_presenter.dart';
 import 'package:yomuyomu/views/manga_viewer.dart';
 
+final DateFormat shortDate = DateFormat('dd/MM/yyyy');
+
 Map<MangaStatus, bool> filterStatus = {
   MangaStatus.cancelled: false,
   MangaStatus.hiatus: false,
@@ -15,14 +19,14 @@ Map<MangaStatus, bool> filterStatus = {
   MangaStatus.completed: false,
 };
 
-class LibraryView extends StatefulWidget {
-  const LibraryView({super.key});
+class BrowseView extends StatefulWidget {
+  const BrowseView({super.key});
 
   @override
-  State<LibraryView> createState() => _LibraryViewState();
+  State<BrowseView> createState() => _BrowseViewState();
 }
 
-class _LibraryViewState extends State<LibraryView>
+class _BrowseViewState extends State<BrowseView>
     implements LibraryViewContract, FileViewContract {
   late LibraryPresenter libraryPresenter;
   List<Manga> mangas = [];
@@ -60,7 +64,7 @@ class _LibraryViewState extends State<LibraryView>
     );
   }
 
-  void _showFilterDialog() {
+  void _showFilterStatusDialog() {
     showDialog(
       context: context,
       builder: (_) {
@@ -177,7 +181,7 @@ class _LibraryViewState extends State<LibraryView>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Library"),
+        title: const Text("Browse"),
         actions: [
           Padding(
             padding: const EdgeInsets.all(8.0),
@@ -195,11 +199,15 @@ class _LibraryViewState extends State<LibraryView>
               ),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: _showFilterDialog,
+          TextButton.icon(
+            icon: const Icon(Icons.filter_list, size: 18),
+            label: const Text("Filter", style: TextStyle(fontSize: 14)),
+            onPressed: _showFilterStatusDialog,
           ),
-          IconButton(icon: const Icon(Icons.sort), onPressed: _showSortDialog),
+          TextButton.icon(
+            icon: const Icon(Icons.sort, size: 18),
+            label: const Text("Sort", style: TextStyle(fontSize: 14)),
+            onPressed: _showSortDialog),
         ],
       ),
       body: ListView.builder(
@@ -209,64 +217,55 @@ class _LibraryViewState extends State<LibraryView>
           List<String> genres = manga.genres;
           String displayedGenres = genres.take(3).join(" • ");
 
-          return InkWell(
-            onTap: () {
-              _openMangaFile(mangas[index].filePath);
-            },
-            child: Container(
-              margin: const EdgeInsets.symmetric(vertical: 8),
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.black),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(width: 80, height: 120, child: Icon(Icons.book)),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "${manga.title}    ${manga.author}",
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        Text(displayedGenres),
-                        const SizedBox(height: 8),
-                        Text("Chapters: ${manga.totalChaptersAmount}"),
-                        const SizedBox(height: 4),
-                        Text("Progress: ${manga.chapterProgress}"),
-                      ],
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+          return Container(
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.black),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 80,
+                  height: 120,
+                  // child: Image.network(
+                  //   manga.coverUrl,
+                  //   fit: BoxFit.cover,
+                  // ),
+                  child: Icon(Icons.book),
+                ),
+                const SizedBox(width: 10),
+                // Información del manga
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Align(
-                        alignment: Alignment.topRight,
-                        child: IconButton(
-                          icon: Icon(
-                            manga.isStarred ? Icons.star : Icons.star_border,
-                            color: manga.isStarred ? Colors.amber : null,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              mangas[index].isStarred =
-                                  !mangas[index].isStarred;
-                            });
-                          },
-                        ),
+                      Text(
+                        "${manga.title}    ${manga.author}",
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text(displayedGenres),
+                      const SizedBox(height: 8),
+                      Text("Chapters: ${manga.totalChaptersAmount}"),
+                      const SizedBox(height: 4),
+                      Text(
+                        "Siguiente capítulo: ${shortDate.format(manga.nextPublicationDate)}",
                       ),
                       Text(
-                        mangas[index].isPending ? "Pending" : "",
-                        style: TextStyle(fontSize: 20),
+                        "Inicio de publicación: ${shortDate.format(manga.startPublicationDate)}",
                       ),
                     ],
                   ),
-                ],
-              ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.share),
+                  onPressed: () {
+                    print("Compartir ${manga.title}");
+                  },
+                ),
+              ],
             ),
           );
         },

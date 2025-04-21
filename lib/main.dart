@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yomuyomu/views/browse_view.dart';
 import 'views/library_view.dart';
 
 void main() {
@@ -30,7 +31,7 @@ class _MainNavigationViewState extends State<MainNavigationView> {
 
   final List<Widget> _views = [
     const LibraryView(),
-    const LibraryView(),
+    const BrowseView(),
     const LibraryView(),
     const LibraryView(),
     const LibraryView(),

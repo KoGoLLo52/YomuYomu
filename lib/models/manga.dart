@@ -11,7 +11,9 @@ class Manga {
   int _totalChaptersAmount;
   int _chapterProgress;
   bool _isStarred;
+  bool _isPending;
   String _filePath;
+  String? folder;
 
   Manga({
     required String title,
@@ -26,7 +28,9 @@ class Manga {
     required int totalChaptersAmount,
     required int chapterProgress,
     required bool isStarred,
+    required bool isPending,
     required String filePath,
+    this.folder,
   }) : _title = title,
        _author = author,
        _sinopsis = sinopsis,
@@ -39,6 +43,7 @@ class Manga {
        _totalChaptersAmount = totalChaptersAmount,
        _chapterProgress = chapterProgress,
        _isStarred = isStarred,
+       _isPending = isPending,
        _filePath = filePath;
 
   // Getters y Setters
@@ -68,16 +73,20 @@ class Manga {
     if (value.isAfter(startPublicationDate)) {
       _nextPublicationDate = value;
     } else {
-      throw ArgumentError('Next publication date must be after the startPublicationDate');
+      throw ArgumentError(
+        'Next publication date must be after the startPublicationDate',
+      );
     }
   }
 
   DateTime get lastReadDate => _lastReadDate;
   set lastReadDate(DateTime value) {
-    if(value.isAfter(startPublicationDate)){
+    if (value.isAfter(startPublicationDate)) {
       _lastReadDate = value;
     } else {
-      throw ArgumentError('LastReadDate cant be before the startPublicationDate');
+      throw ArgumentError(
+        'LastReadDate cant be before the startPublicationDate',
+      );
     }
   }
 
@@ -97,6 +106,9 @@ class Manga {
 
   bool get isStarred => _isStarred;
   set isStarred(bool value) => _isStarred = value;
+
+  bool get isPending => _isPending;
+  set isPending(bool value) => _isPending = value;
 
   String get filePath => _filePath;
   set filePath(String value) => _filePath = value;

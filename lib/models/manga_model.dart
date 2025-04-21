@@ -22,19 +22,16 @@ class MangaModel {
       }
     }
 
-    // Ordena las imágenes por nombre de archivo (para mantener el orden correcto)
     imageFiles.sort((a, b) => a.path.compareTo(b.path));
     return imageFiles;
   }
 
-  // Solicita permisos de almacenamiento en Android
   Future<bool> requestStoragePermission() async {
     if (Platform.isAndroid) {
       final deviceInfo = DeviceInfoPlugin();
       final androidInfo = await deviceInfo.androidInfo;
       final sdkInt = androidInfo.version.sdkInt;
 
-      // Si la versión de Android es >= 33, no es necesario el permiso
       if (sdkInt >= 33) return true;
 
       final status = await Permission.storage.request();
