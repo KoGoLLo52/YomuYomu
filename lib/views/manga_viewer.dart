@@ -1,94 +1,85 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:yomuyomu/config/global_settings.dart';
 
-final int screenDoubleImageSize = 1200;
-final Axis userDirectionPreference = Axis.vertical;
+const double doublePageWidthThreshold = 1200;
 
 class MangaViewer extends StatelessWidget {
-  final List<File> images;
-  const MangaViewer({super.key, required this.images});
+  final List<File> mangaImages;
+
+  const MangaViewer({super.key, required this.mangaImages});
 
   @override
   Widget build(BuildContext context) {
-    final pages = groupPagesByWidth(context, images);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Reading Manga'),
-        titleTextStyle: TextStyle(color: Colors.cyanAccent),
-        iconTheme: IconThemeData(
-          color:
-              Colors
-                  .white, // Cambia el color del botón de retroceso (la flecha)
-        ),
+        titleTextStyle: const TextStyle(color: Colors.cyanAccent),
+        iconTheme: const IconThemeData(color: Colors.white),
         backgroundColor: Colors.black,
       ),
       backgroundColor: Colors.black,
-      body:
-          images.isEmpty
-              ? const Center(child: CircularProgressIndicator())
-              : PageView.builder(
-                scrollDirection: userDirectionPreference,
-                physics: const BouncingScrollPhysics(),
-                pageSnapping: false,
-                itemCount: pages.length,
-                itemBuilder: (context, index) {
-                  final pageImages = pages[index];
-                  final bool showJustOne = pageImages.length == 1;
+      body: mangaImages.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : ValueListenableBuilder<Axis>(
+              valueListenable: userDirectionPreference,
+              builder: (context, axis, _) {
+                final bool isDoublePageLayout = MediaQuery.of(context).size.width > doublePageWidthThreshold;
+                final groupedPages = _groupImagesIntoPages(mangaImages, isDoublePageLayout);
 
-                  final bool isLastIncompleteRow =
-                      showJustOne &&
-                      index == pages.length - 1 &&
-                      MediaQuery.of(context).size.width > screenDoubleImageSize;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 30),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.max,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        for (var image in pageImages)
-                          Flexible(
-                            flex: 1,
-                            child: ClipRect(
-                              child: Image.file(
-                                image,
-                                fit:
-                                    pageImages.length == 2
-                                        ? BoxFit.fill
-                                        : BoxFit.contain,
-                                filterQuality: FilterQuality.high,
-                                width: double.infinity,
-                              ),
-                            ),
-                          ),
-                        if (isLastIncompleteRow)
-                          const Flexible(
-                            flex: 1,
-                            child:
-                                SizedBox(), // Espacio para segunda imagen inexistente
-                          ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+                return PageView.builder(
+                  scrollDirection: axis,
+                  physics: const BouncingScrollPhysics(),
+                  pageSnapping: true,
+                  itemCount: groupedPages.length,
+                  itemBuilder: (context, index) {
+                    final pageImages = groupedPages[index];
+
+                    return _buildPageView(pageImages);
+                  },
+                );
+              },
+            ),
     );
   }
 
-  List<List<File>> groupPagesByWidth(BuildContext context, List<File> images) {
-    final double screenWidth = MediaQuery.of(context).size.width;
-    int imagesPerRow = screenWidth > screenDoubleImageSize ? 2 : 1;
+  List<List<File>> _groupImagesIntoPages(List<File> images, bool isDoublePageLayout) {
+    final int imagesPerPage = isDoublePageLayout ? 2 : 1;
+    final List<List<File>> pages = [];
 
-    List<List<File>> pages = [];
+    for (int i = 0; i < images.length; i += imagesPerPage) {
+      final pageImages = images.sublist(
+        i,
+        (i + imagesPerPage > images.length) ? images.length : i + imagesPerPage,
+      );
+      pages.add(pageImages);
+    }
 
-    for (int i = 0; i < images.length; i += imagesPerRow) {
-      pages.add(
-        images.sublist(
-          i,
-          (i + imagesPerRow > images.length) ? images.length : i + imagesPerRow,
+    return pages;
+  }
+
+  Widget _buildPageView(List<File> pageImages) {
+    if (pageImages.length == 1) {
+      return Center(
+        child: Image.file(
+          pageImages[0],
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.high,
+          width: double.infinity,
         ),
       );
+    } else {
+      return Row(
+        children: pageImages.map((image) {
+          return Expanded(
+            child: Image.file(
+              image,
+              fit: BoxFit.contain,
+              filterQuality: FilterQuality.high,
+            ),
+          );
+        }).toList(),
+      );
     }
-    return pages;
   }
 }

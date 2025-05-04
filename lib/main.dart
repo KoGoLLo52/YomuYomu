@@ -1,43 +1,89 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yomuyomu/config/global_settings.dart';
+import 'package:yomuyomu/views/account_view.dart';
 import 'package:yomuyomu/views/browse_view.dart';
-import 'views/library_view.dart';
+import 'package:yomuyomu/views/history_view.dart';
+import 'package:yomuyomu/views/library_view.dart';
+import 'package:yomuyomu/views/settings_view.dart'; 
 
-void main() {
-  runApp(const MyApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final preferences = await SharedPreferences.getInstance();
+  final themePreference = preferences.getString('theme_mode') ?? 'system';
+
+  appThemeMode.value = _getThemeFromPreference(themePreference);
+
+  runApp(const AppRoot());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+ThemeMode _getThemeFromPreference(String preference) {
+  switch (preference) {
+    case 'light':
+      return ThemeMode.light;
+    case 'dark':
+      return ThemeMode.dark;
+    default:
+      return ThemeMode.system;
+  }
+}
+
+Future<void> updateThemePreference(ThemeMode mode) async {
+  final preferences = await SharedPreferences.getInstance();
+  await preferences.setString('theme_mode', _getThemePreferenceString(mode));
+  appThemeMode.value = mode;
+}
+
+String _getThemePreferenceString(ThemeMode mode) {
+  switch (mode) {
+    case ThemeMode.light:
+      return 'light';
+    case ThemeMode.dark:
+      return 'dark';
+    default:
+      return 'system';
+  }
+}
+
+class AppRoot extends StatelessWidget {
+  const AppRoot({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Manga Reader',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: const MainNavigationView(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: appThemeMode,
+      builder: (context, themeMode, _) {
+        return MaterialApp(
+          title: 'Manga Reader',
+          theme: ThemeData.light(),
+          darkTheme: ThemeData.dark(),
+          themeMode: themeMode,
+          home: const MainNavigationScreen(),
+        );
+      },
     );
   }
 }
 
-class MainNavigationView extends StatefulWidget {
-  const MainNavigationView({super.key});
+class MainNavigationScreen extends StatefulWidget {
+  const MainNavigationScreen({super.key});
 
   @override
-  State<MainNavigationView> createState() => _MainNavigationViewState();
+  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
 
-class _MainNavigationViewState extends State<MainNavigationView> {
-  int _selectedIndex = 0;
+class _MainNavigationScreenState extends State<MainNavigationScreen> {
+  int currentIndex = 0;
 
-  final List<Widget> _views = [
-    const LibraryView(),
-    const BrowseView(),
-    const LibraryView(),
-    const LibraryView(),
-    const LibraryView(),
-    ];
+  final List<Widget> screenViews = const [
+    LibraryView(),
+    BrowseView(),
+    HistoryView(),
+    AccountView(),
+    SettingsView(),
+  ];
 
-  final List<String> _titles = [
+  final List<String> screenTitles = const [
     "Library",
     "Browse",
     "History",
@@ -45,16 +91,16 @@ class _MainNavigationViewState extends State<MainNavigationView> {
     "Settings",
   ];
 
-  void _onItemTapped(int index) {
+  void onNavItemSelected(int index) {
     setState(() {
-      _selectedIndex = index;
+      currentIndex = index;
     });
   }
 
-  Widget _buildDrawer(BuildContext context, bool isPermanent) {
+  Widget _buildNavigationDrawer(BuildContext context, bool isWideScreen) {
     return NavigationRail(
-      selectedIndex: _selectedIndex,
-      onDestinationSelected: _onItemTapped,
+      selectedIndex: currentIndex,
+      onDestinationSelected: onNavItemSelected,
       labelType: NavigationRailLabelType.all,
       destinations: const [
         NavigationRailDestination(
@@ -89,80 +135,56 @@ class _MainNavigationViewState extends State<MainNavigationView> {
 
         return Scaffold(
           appBar: AppBar(
-            title: Text(_titles[_selectedIndex]),
-            leading:
-                isWideScreen
-                    ? null
-                    : Builder(
-                      builder:
-                          (context) => IconButton(
-                            icon: const Icon(Icons.menu),
-                            onPressed: () => Scaffold.of(context).openDrawer(),
-                          ),
-                    ),
-          ),
-          drawer:
-              isWideScreen
-                  ? null
-                  : Drawer(
-                    child: ListView(
-                      children: [
-                        ListTile(
-                          title: const Text("Library"),
-                          leading: const Icon(Icons.library_books),
-                          selected: _selectedIndex == 0,
-                          onTap: () {
-                            _onItemTapped(0);
-                            Navigator.pop(context);
-                          },
-                        ),
-                        ListTile(
-                          title: const Text("Browse"),
-                          leading: const Icon(Icons.browse_gallery),
-                          selected: _selectedIndex == 1,
-                          onTap: () {
-                            _onItemTapped(1);
-                            Navigator.pop(context);
-                          },
-                        ),
-                        ListTile(
-                          title: const Text("History"),
-                          leading: const Icon(Icons.history),
-                          selected: _selectedIndex == 2,
-                          onTap: () {
-                            _onItemTapped(2);
-                            Navigator.pop(context);
-                          },
-                        ),
-                        ListTile(
-                          title: const Text("Account"),
-                          leading: const Icon(Icons.account_circle),
-                          selected: _selectedIndex == 3,
-                          onTap: () {
-                            _onItemTapped(3);
-                            Navigator.pop(context);
-                          },
-                        ),
-                        ListTile(
-                          title: const Text("Settings"),
-                          leading: const Icon(Icons.settings),
-                          selected: _selectedIndex == 4,
-                          onTap: () {
-                            _onItemTapped(4);
-                            Navigator.pop(context);
-                          },
-                        ),
-                      ],
-                    ),
+            title: Text(screenTitles[currentIndex]),
+            leading: isWideScreen
+                ? null
+                : IconButton(
+                    icon: const Icon(Icons.menu),
+                    onPressed: () => Scaffold.of(context).openDrawer(),
                   ),
+          ),
+          drawer: isWideScreen
+              ? null
+              : Drawer(
+                  child: ListView(
+                    children: [
+                      for (int i = 0; i < screenTitles.length; i++)
+                        ListTile(
+                          title: Text(screenTitles[i]),
+                          leading: _getIconForScreen(i),
+                          selected: currentIndex == i,
+                          onTap: () {
+                            onNavItemSelected(i);
+                            Navigator.pop(context);
+                          },
+                        ),
+                    ],
+                  ),
+                ),
           body: Row(
             children: [
-              if (isWideScreen) _buildDrawer(context, true),
-              Expanded(child: _views[_selectedIndex]),
+              if (isWideScreen) _buildNavigationDrawer(context, true),
+              Expanded(child: screenViews[currentIndex]),
             ],
           ),
         );
       },
     );
+  }
+
+  Icon _getIconForScreen(int index) {
+    switch (index) {
+      case 0:
+        return const Icon(Icons.library_books);
+      case 1:
+        return const Icon(Icons.browse_gallery);
+      case 2:
+        return const Icon(Icons.history);
+      case 3:
+        return const Icon(Icons.account_circle);
+      case 4:
+      default:
+        return const Icon(Icons.settings);
+    }
   }
 }

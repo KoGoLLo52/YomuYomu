@@ -10,10 +10,13 @@ class Manga {
   MangaStatus _status;
   int _totalChaptersAmount;
   int _chapterProgress;
+  int _lastChapterRead;
   bool _isStarred;
   bool _isPending;
   String _filePath;
-  String? folder;
+  String? _coverUrl;
+  String? _folder;
+  List<Chapter>? _chapters; 
 
   Manga({
     required String title,
@@ -27,10 +30,11 @@ class Manga {
     required MangaStatus status,
     required int totalChaptersAmount,
     required int chapterProgress,
+    required int lastChapterRead,
     required bool isStarred,
     required bool isPending,
     required String filePath,
-    this.folder,
+    List<Chapter>? chapters,
   }) : _title = title,
        _author = author,
        _sinopsis = sinopsis,
@@ -38,13 +42,15 @@ class Manga {
        _startPublicationDate = startPublicationDate,
        _nextPublicationDate = nextPublicationDate,
        _lastReadDate = lastReadDate,
+       _lastChapterRead = lastChapterRead,
        _genres = genres,
        _status = status,
        _totalChaptersAmount = totalChaptersAmount,
        _chapterProgress = chapterProgress,
        _isStarred = isStarred,
        _isPending = isPending,
-       _filePath = filePath;
+       _filePath = filePath,
+       _chapters = chapters;
 
   // Getters y Setters
   String get title => _title;
@@ -104,6 +110,9 @@ class Manga {
   int get chapterProgress => _chapterProgress;
   set chapterProgress(int value) => _chapterProgress = value;
 
+  int get lastChapterRead => _lastChapterRead;
+  set lastChapterRead(int value) => _lastChapterRead = value;
+
   bool get isStarred => _isStarred;
   set isStarred(bool value) => _isStarred = value;
 
@@ -112,7 +121,13 @@ class Manga {
 
   String get filePath => _filePath;
   set filePath(String value) => _filePath = value;
+
+  List<Chapter>? get chapters => _chapters;
+  set chapters(List<Chapter>? value) => _chapters = value;
+
+  String? get coverUrl => _coverUrl; 
 }
+
 
 enum MangaStatus {
   ongoing(0),
@@ -131,4 +146,21 @@ enum MangaStatus {
   }
 
   int toInt() => value;
+}
+
+class Chapter {
+  final int number;
+  final String title;
+  final String date;
+  final String coverUrl;
+
+  Chapter({
+    required this.number,
+    required this.title,
+    required this.date,
+    required this.coverUrl,
+    required String thumbnailUrl,
+  });
+
+  String? get thumbnailUrl => null;
 }
