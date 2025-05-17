@@ -1,14 +1,12 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:yomuyomu/config/global_genres.dart';
 import 'package:yomuyomu/contracts/manga_contract.dart';
-import 'package:yomuyomu/presenters/manga_presenter.dart';
-import 'package:yomuyomu/models/manga.dart';
+import 'package:yomuyomu/models/manga_model.dart';
 import 'package:yomuyomu/contracts/library_contract.dart';
 import 'package:yomuyomu/presenters/library_presenter.dart';
-import 'package:yomuyomu/views/manga_viewer.dart';
 
 final DateFormat dateFormat = DateFormat('dd/MM/yyyy');
 
@@ -20,7 +18,7 @@ Map<MangaStatus, bool> mangaStatusFilter = {
 };
 
 class BrowseView extends StatefulWidget {
-  const BrowseView({Key? key}) : super(key: key);
+  const BrowseView({super.key});
 
   @override
   _BrowseViewState createState() => _BrowseViewState();
@@ -30,14 +28,13 @@ class _BrowseViewState extends State<BrowseView>
     implements LibraryViewContract, FileViewContract {
   late LibraryPresenter _libraryPresenter;
   List<Manga> _mangas = [];
-  late FileViewModel _fileViewModel;
+  bool _isLoading = true;
   late TextEditingController _searchController;
 
   @override
   void initState() {
     super.initState();
     _libraryPresenter = LibraryPresenter(this);
-    _fileViewModel = FileViewModel(this);
     _searchController = TextEditingController();
     _libraryPresenter.loadMangas();
   }
@@ -46,6 +43,7 @@ class _BrowseViewState extends State<BrowseView>
   void updateMangaList(List<Manga> updatedMangas) {
     setState(() {
       _mangas = updatedMangas;
+      _isLoading = false;
     });
   }
 
@@ -54,14 +52,6 @@ class _BrowseViewState extends State<BrowseView>
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
-  }
-
-  @override
-  void showImages(List<File> images) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => MangaViewer(mangaImages: images)),
-    );
   }
 
   void _showStatusFilterDialog() {
@@ -78,9 +68,7 @@ class _BrowseViewState extends State<BrowseView>
                   children:
                       MangaStatus.values.map((status) {
                         return CheckboxListTile(
-                          title: Text(
-                            status.toString(),
-                          ),
+                          title: Text(status.toString().split('.').last),
                           value: mangaStatusFilter[status],
                           onChanged: (bool? newValue) {
                             setState(() {
@@ -111,7 +99,7 @@ class _BrowseViewState extends State<BrowseView>
                     }
                     Navigator.pop(context);
                   },
-                  child: const Text("Accept"),
+                  child: const Text("Apply"),
                 ),
               ],
             );
@@ -166,10 +154,9 @@ class _BrowseViewState extends State<BrowseView>
                     } else {
                       _libraryPresenter.filterByGenres(selectedGenres);
                     }
-
                     Navigator.pop(context);
                   },
-                  child: const Text("Accept"),
+                  child: const Text("Apply"),
                 ),
               ],
             );
@@ -244,57 +231,86 @@ class _BrowseViewState extends State<BrowseView>
           ),
         ],
       ),
-      body: ListView.builder(
-        itemCount: _mangas.length,
-        itemBuilder: (context, index) {
-          final manga = _mangas[index];
-          final genres = manga.genres;
-          final displayedGenres = genres.take(3).join(" • ");
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : ListView.builder(
+                itemCount: _mangas.length,
+                itemBuilder: (context, index) {
+                  final manga = _mangas[index];
+                  final genres = manga.genres;
+                  final displayedGenres = genres.take(3).join(" • ");
 
-          return Container(
-            margin: const EdgeInsets.symmetric(vertical: 8),
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.black),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(width: 80, height: 120, child: Icon(Icons.book)),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "${manga.title}    ${manga.author}",
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Text(displayedGenres),
-                      const SizedBox(height: 8),
-                      Text("Chapters: ${manga.totalChaptersAmount}"),
-                      const SizedBox(height: 4),
-                      Text(
-                        "Next Chapter: ${dateFormat.format(manga.nextPublicationDate)}",
-                      ),
-                      Text(
-                        "Start Publication: ${dateFormat.format(manga.startPublicationDate)}",
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.share),
-                  onPressed: () {
-                    print("Share ${manga.title}");
-                  },
-                ),
-              ],
-            ),
-          );
-        },
-      ),
+                  return Container(
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.black),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: 80,
+                          height: 120,
+                          child: Icon(Icons.book),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "${manga.title}    ${manga.authorId}",
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(displayedGenres),
+                              const SizedBox(height: 8),
+                              Text("Chapters: ${manga.totalChaptersAmount}"),
+                              const SizedBox(height: 4),
+                              Text(
+                                "Next Chapter: ${manga.nextPublicationDate != null ? dateFormat.format(manga.nextPublicationDate!) : 'N/A'}",
+                              ),
+                              Text(
+                                "Start Publication: ${dateFormat.format(manga.startPublicationDate)}",
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.share),
+                          onPressed: () {
+                            print("Share ${manga.title}");
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
     );
+  }
+  
+  @override
+  void hideLoading() {
+    // TODO: implement hideLoading
+  }
+  
+  @override
+  void showLoading() {
+    // TODO: implement showLoading
+  }
+  
+  @override
+  void showMangaDetails(Manga manga) {
+    // TODO: implement showMangaDetails
+  }
+
+  @override
+  void showImagesInMemory(List<Uint8List> imageData) {
+    // TODO: implement showImagesInMemory
   }
 }

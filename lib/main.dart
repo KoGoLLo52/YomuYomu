@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:yomuyomu/config/global_settings.dart';
+import 'package:yomuyomu/helpers/database_helper.dart';
+import 'package:yomuyomu/insert_mock_data.dart';
 import 'package:yomuyomu/views/account_view.dart';
 import 'package:yomuyomu/views/browse_view.dart';
 import 'package:yomuyomu/views/history_view.dart';
@@ -14,6 +17,13 @@ Future<void> main() async {
 
   appThemeMode.value = _getThemeFromPreference(themePreference);
 
+  sqfliteFfiInit();
+  databaseFactory = databaseFactoryFfi;
+
+  WidgetsFlutterBinding.ensureInitialized();
+  final db = await DatabaseHelper.instance.database;
+  insertSampleData();
+  
   runApp(const AppRoot());
 }
 

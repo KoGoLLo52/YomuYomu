@@ -1,6 +1,9 @@
-import 'package:yomuyomu/models/manga.dart';
+import 'package:yomuyomu/models/manga_model.dart';
 
 abstract class LibraryViewContract {
+  void showLoading();
+  void hideLoading();
+  void showError(String message);
   void updateMangaList(List<Manga> mangas);
 }
 

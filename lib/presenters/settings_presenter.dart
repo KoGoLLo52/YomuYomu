@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:yomuyomu/config/global_settigns.dart';
+import 'package:yomuyomu/config/global_settings.dart';
 import 'package:yomuyomu/contracts/settings_contract.dart';
 
 class SettingsPresenter {

@@ -1,4 +1,7 @@
 abstract class AccountViewContract {
+  void showLoading();
+  void hideLoading();
+  void showError(String message);
   void updateUserInfo(String username, String date);
   void updateActivity({
     required String mostReadGenre,

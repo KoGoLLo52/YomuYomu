@@ -129,4 +129,19 @@ class _AccountViewState extends State<AccountView>
       ),
     );
   }
+  
+  @override
+  void hideLoading() {
+    // TODO: implement hideLoading
+  }
+  
+  @override
+  void showError(String message) {
+    // TODO: implement showError
+  }
+  
+  @override
+  void showLoading() {
+    // TODO: implement showLoading
+  }
 }

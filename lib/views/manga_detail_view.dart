@@ -1,15 +1,17 @@
 import 'dart:io';
-
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:yomuyomu/contracts/manga_contract.dart';
-import 'package:yomuyomu/models/manga.dart';
+import 'package:yomuyomu/models/chapter_model.dart';
 import 'package:yomuyomu/contracts/manga_detail_contract.dart';
+import 'package:yomuyomu/models/manga_model.dart';
 import 'package:yomuyomu/presenters/manga_detail_presenter.dart';
 import 'package:yomuyomu/presenters/manga_presenter.dart';
 import 'package:yomuyomu/views/manga_viewer.dart';
 
 class MangaDetailView extends StatefulWidget {
-  const MangaDetailView({super.key});
+  final Manga manga;
+  const MangaDetailView({super.key, required this.manga});
 
   @override
   State<MangaDetailView> createState() => _MangaDetailViewState();
@@ -30,13 +32,13 @@ class _MangaDetailViewState extends State<MangaDetailView>
     _presenter = MangaDetailPresenter(this);
     _fileViewModel = FileViewModel(this);
     _searchController.addListener(_onSearchChanged);
-    _presenter.loadMangaDetail();
+    _presenter.loadMangaDetail(widget.manga.id);
   }
 
   void _onSearchChanged() {
     final query = _searchController.text.trim();
     if (query.isEmpty) {
-      _presenter.loadMangaDetail();
+      _presenter.loadMangaDetail(widget.manga.id);
     } else {
       _presenter.searchChapter(query);
     }
@@ -49,8 +51,9 @@ class _MangaDetailViewState extends State<MangaDetailView>
     super.dispose();
   }
 
-  void _onChapterSelected(String filePath) {
-    _fileViewModel.openFileFromLocation(filePath);
+  void _onChapterSelected(Chapter chapter) async {
+    // Asegúrate de que chapter.chapterId esté definido y coincida con CBZHandler
+    await _fileViewModel.openSpecificChapter(chapter.filePath, chapter.id);
   }
 
   @override
@@ -92,7 +95,7 @@ class _MangaDetailViewState extends State<MangaDetailView>
         _currentManga!.coverUrl ?? 'https://example.com/default.jpg',
       ),
       title: Text(_currentManga!.title),
-      subtitle: Text("by ${_currentManga!.author}"),
+      subtitle: Text("by ${_currentManga!.authorId}"),
     );
   }
 
@@ -100,7 +103,7 @@ class _MangaDetailViewState extends State<MangaDetailView>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Text(
-        _currentManga!.sinopsis,
+        _currentManga!.synopsis ?? 'No synopsis available.',
         style: const TextStyle(fontSize: 14.0),
       ),
     );
@@ -120,7 +123,9 @@ class _MangaDetailViewState extends State<MangaDetailView>
         IconButton(
           icon: const Icon(Icons.sort),
           onPressed: () {
-            _availableChapters.sort((a, b) => a.date.compareTo(b.date));
+            _availableChapters.sort(
+              (a, b) => a.publicationDate!.compareTo(b.publicationDate!),
+            );
             setState(() {});
           },
         ),
@@ -149,11 +154,11 @@ class _MangaDetailViewState extends State<MangaDetailView>
           final chapter = _availableChapters[index];
           return ListTile(
             leading: Image.network(
-              chapter.thumbnailUrl ?? 'https://example.com/default.jpg',
+              chapter.coverUrl ?? 'https://example.com/default.jpg',
             ),
-            title: Text(chapter.title),
-            subtitle: Text("Published: ${chapter.date}"),
-            onTap: () => _onChapterSelected(_currentManga!.filePath),
+            title: Text(chapter.title ?? 'No Title'),
+            subtitle: Text("Published: ${chapter.publicationDate}"),
+            onTap: () => _onChapterSelected(chapter),
           );
         },
       ),
@@ -166,10 +171,25 @@ class _MangaDetailViewState extends State<MangaDetailView>
   }
 
   @override
-  void showImages(List<File> images) {
+  void showImagesInMemory(List<Uint8List> imageData) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => MangaViewer(mangaImages: images,)),
+      MaterialPageRoute(
+        builder: (context) => MangaViewer(mangaImages: imageData),
+      ),
     );
   }
+
+  // Métodos sin implementar (según contrato, pero no usados)
+  @override
+  void showImages(List<File> images) {}
+
+  @override
+  void hideLoading() {}
+
+  @override
+  void showLoading() {}
+
+  @override
+  void showMangaDetails(Manga manga) {}
 }

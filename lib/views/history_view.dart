@@ -1,15 +1,13 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:yomuyomu/config/global_genres.dart';
 import 'package:yomuyomu/contracts/manga_contract.dart';
+import 'package:yomuyomu/models/manga_model.dart';
 import 'package:yomuyomu/presenters/manga_presenter.dart';
-import 'package:yomuyomu/models/manga.dart';
 import 'package:yomuyomu/contracts/library_contract.dart';
 import 'package:yomuyomu/presenters/library_presenter.dart';
-import 'package:yomuyomu/views/browse_view.dart';
 import 'package:yomuyomu/views/library_view.dart';
-import 'package:yomuyomu/views/manga_viewer.dart';
 
 final DateFormat dateFormat = DateFormat('dd/MM/yyyy');
 
@@ -45,19 +43,10 @@ class _HistoryViewState extends State<HistoryView>
 
   @override
   void showError(String errorMessage) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(errorMessage)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
   }
 
-  @override
-  void showImages(List<File> images) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => MangaViewer(mangaImages: images)),
-    );
-  }
-
+  // Status filter
   void _showStatusFilterDialog() {
     showDialog(
       context: context,
@@ -69,18 +58,17 @@ class _HistoryViewState extends State<HistoryView>
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  children:
-                      MangaStatus.values.map((status) {
-                        return CheckboxListTile(
-                          title: Text(status.toString()),
-                          value: _getFilterStatus(status),
-                          onChanged: (isSelected) {
-                            setState(() {
-                              _toggleStatusFilter(status, isSelected!);
-                            });
-                          },
-                        );
-                      }).toList(),
+                  children: MangaStatus.values.map((status) {
+                    return CheckboxListTile(
+                      title: Text(status.toString()),
+                      value: _getFilterStatus(status),
+                      onChanged: (isSelected) {
+                        setState(() {
+                          _toggleStatusFilter(status, isSelected!);
+                        });
+                      },
+                    );
+                  }).toList(),
                 ),
               ),
               actions: [
@@ -108,6 +96,7 @@ class _HistoryViewState extends State<HistoryView>
     );
   }
 
+  // Genre filter
   void _showGenreFilterDialog() {
     showDialog(
       context: context,
@@ -120,18 +109,17 @@ class _HistoryViewState extends State<HistoryView>
                 child: Wrap(
                   spacing: 8.0,
                   runSpacing: 8.0,
-                  children:
-                      genreFilterStatus.keys.map((genre) {
-                        return FilterChip(
-                          label: Text(genre),
-                          selected: genreFilterStatus[genre]!,
-                          onSelected: (isSelected) {
-                            setState(() {
-                              genreFilterStatus[genre] = isSelected;
-                            });
-                          },
-                        );
-                      }).toList(),
+                  children: genreFilterStatus.keys.map((genre) {
+                    return FilterChip(
+                      label: Text(genre),
+                      selected: genreFilterStatus[genre]!,
+                      onSelected: (isSelected) {
+                        setState(() {
+                          genreFilterStatus[genre] = isSelected;
+                        });
+                      },
+                    );
+                  }).toList(),
                 ),
               ),
               actions: [
@@ -163,18 +151,18 @@ class _HistoryViewState extends State<HistoryView>
     _libraryPresenter.filterMangasByTitle(query);
   }
 
+  // Sort options
   void _showSortDialog() {
     showModalBottomSheet(
       context: context,
-      builder:
-          (_) => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildSortOption("Alphabetically", 0),
-              _buildSortOption("Total Chapters", 1),
-              _buildSortOption("Rating", 2),
-            ],
-          ),
+      builder: (_) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildSortOption("Alphabetically", 0),
+          _buildSortOption("Total Chapters", 1),
+          _buildSortOption("Rating", 2),
+        ],
+      ),
     );
   }
 
@@ -194,24 +182,18 @@ class _HistoryViewState extends State<HistoryView>
   }
 
   List<MangaStatus> _getSelectedStatuses() {
-    return filterStatus.entries
-        .where((e) => e.value)
-        .map((e) => e.key)
-        .toList();
+    return filterStatus.entries.where((e) => e.value).map((e) => e.key).toList();
   }
 
   List<String> _getSelectedGenres() {
-    return genreFilterStatus.entries
-        .where((e) => e.value)
-        .map((e) => e.key)
-        .toList();
+    return genreFilterStatus.entries.where((e) => e.value).map((e) => e.key).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Browse"),
+        title: const Text("History"),
         actions: [
           _buildSearchBar(),
           _buildFilterButton(),
@@ -262,7 +244,10 @@ class _HistoryViewState extends State<HistoryView>
   }
 
   IconButton _buildSortButton() {
-    return IconButton(icon: const Icon(Icons.sort), onPressed: _showSortDialog);
+    return IconButton(
+      icon: const Icon(Icons.sort),
+      onPressed: _showSortDialog,
+    );
   }
 
   Container _buildMangaCard(Manga manga, String genres) {
@@ -291,7 +276,7 @@ class _HistoryViewState extends State<HistoryView>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "${manga.title}    ${manga.author}",
+            "${manga.title}    ${manga.authorId}",
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           Text(genres),
@@ -311,5 +296,25 @@ class _HistoryViewState extends State<HistoryView>
         print("Compartir ${manga.title}");
       },
     );
+  }
+  
+  @override
+  void hideLoading() {
+    // TODO: implement hideLoading
+  }
+  
+  @override
+  void showLoading() {
+    // TODO: implement showLoading
+  }
+  
+  @override
+  void showMangaDetails(Manga manga) {
+    // TODO: implement showMangaDetails
+  }
+
+  @override
+  void showImagesInMemory(List<Uint8List> imageData) {
+    // TODO: implement showImagesInMemory
   }
 }

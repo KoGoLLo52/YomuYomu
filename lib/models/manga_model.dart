@@ -1,42 +1,105 @@
-import 'dart:io';
-import 'package:archive/archive.dart';
-import 'package:device_info_plus/device_info_plus.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:yomuyomu/models/chapter_model.dart';
 
-class MangaModel {
-  Future<List<File>> extract(File compressedFile) async {
-    final bytes = await compressedFile.readAsBytes();
-    final archive = ZipDecoder().decodeBytes(bytes);
-    final tempDir = await getTemporaryDirectory();
-    List<File> imageFiles = [];
+class Manga {
+  final String id;
+  String title;
+  String authorId;
+  String? synopsis;
+  double rating;
+  DateTime startPublicationDate;
+  DateTime? nextPublicationDate;
+  DateTime? lastReadDate;
+  List<String> genres;
+  MangaStatus status;
+  int totalChaptersAmount;
+  int chapterProgress;
+  int lastChapterRead;
+  bool isStarred;
+  bool isPending;
+  String? coverUrl;
+  String? folderId;
+  List<Chapter>? chapters;
 
-    for (final file in archive) {
-      if (!file.isFile) continue;
-      final filename = file.name.toLowerCase();
-      if (filename.endsWith('.jpg') || filename.endsWith('.png')) {
-        final data = file.content as List<int>;
-        final output = File('${tempDir.path}/${file.name}');
-        await output.writeAsBytes(data);  // Escribe la imagen extraída
-        imageFiles.add(output);
-      }
+  Manga({
+    required this.id,
+    required this.title,
+    required this.authorId,
+    this.synopsis,
+    this.rating = 0.0,
+    required this.startPublicationDate,
+    this.nextPublicationDate,
+    this.lastReadDate,
+    this.genres = const [],
+    this.status = MangaStatus.ongoing,
+    required this.totalChaptersAmount,
+    this.chapterProgress = 0,
+    this.lastChapterRead = 0,
+    this.isStarred = false,
+    this.isPending = false,
+    this.coverUrl,
+    this.folderId,
+    this.chapters,
+  }) {
+    // Validaciones
+    if (rating < 0 || rating > 5) {
+      throw ArgumentError('Rating must be between 0 and 5');
     }
-
-    imageFiles.sort((a, b) => a.path.compareTo(b.path));
-    return imageFiles;
+    if (nextPublicationDate != null &&
+        nextPublicationDate!.isBefore(startPublicationDate)) {
+      throw ArgumentError('Next publication date must be after start date');
+    }
+    if (lastReadDate != null && lastReadDate!.isBefore(startPublicationDate)) {
+      throw ArgumentError('Last read date cannot be before start date');
+    }
   }
 
-  Future<bool> requestStoragePermission() async {
-    if (Platform.isAndroid) {
-      final deviceInfo = DeviceInfoPlugin();
-      final androidInfo = await deviceInfo.androidInfo;
-      final sdkInt = androidInfo.version.sdkInt;
+  Map<String, dynamic> toMap() => {
+    'MangaID': id,
+    'AuthorID': authorId,
+    'Title': title,
+    'synopsis': synopsis,
+    'Rating': rating,
+    'StartPublicationDate': startPublicationDate.millisecondsSinceEpoch,
+    'NextPublicationDate': nextPublicationDate?.millisecondsSinceEpoch,
+    'Chapters': totalChaptersAmount,
+  };
 
-      if (sdkInt >= 33) return true;
-
-      final status = await Permission.storage.request();
-      return status.isGranted;
-    }
-    return true; // En iOS no es necesario el permiso
+  factory Manga.fromMap(Map<String, dynamic> map) {
+    return Manga(
+      id: map['MangaID'] ?? '',
+      authorId: map['AuthorID'],
+      title: map['Title'] ?? '',
+      synopsis: map['Sinopsis'],
+      rating: map['Rating'] != null ? (map['Rating'] as num).toDouble() : 0,
+      startPublicationDate:
+          map['StartPublicationDate'] != null
+              ? DateTime.fromMillisecondsSinceEpoch(map['StartPublicationDate'])
+              : DateTime.now(),
+      nextPublicationDate:
+          map['NextPublicationDate'] != null
+              ? DateTime.fromMillisecondsSinceEpoch(map['NextPublicationDate'])
+              : DateTime.now(),
+      totalChaptersAmount: map['Chapters'] ?? 0,
+      // Otros campos como chapterProgress, lastChapterRead, isStarred... si están en memoria o se agregan luego
+    );
   }
+}
+
+enum MangaStatus {
+  ongoing(0),
+  completed(1),
+  hiatus(2),
+  cancelled(3);
+
+  final int value;
+  const MangaStatus(this.value);
+
+  static MangaStatus fromInt(int value) {
+    return MangaStatus.values.firstWhere(
+      (e) => e.value == value,
+      orElse: () => MangaStatus.ongoing,
+    );
+  }
+
+  int toInt() => value;
 }

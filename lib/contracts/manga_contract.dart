@@ -1,6 +1,10 @@
-import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:yomuyomu/models/manga_model.dart';
 
 abstract class FileViewContract {
+  void showImagesInMemory(List<Uint8List> imageData);
+  void showMangaDetails(Manga manga) {}
   void showError(String message);
-  void showImages(List<File> images);
 }
+

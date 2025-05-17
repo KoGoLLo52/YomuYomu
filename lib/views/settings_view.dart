@@ -153,4 +153,16 @@ class _SettingsViewState extends State<SettingsView> implements SettingsViewCont
       userDirectionPreference.value = orientation;
     });
   }
+  
+  @override
+  void hideLoading() {
+  }
+  
+  @override
+  void showError(String message) {
+  }
+  
+  @override
+  void showLoading() {
+  }
 }

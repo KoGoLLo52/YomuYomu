@@ -1,14 +1,13 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:yomuyomu/config/global_genres.dart';
 import 'package:yomuyomu/contracts/manga_contract.dart';
+import 'package:yomuyomu/models/manga_model.dart';
 import 'package:yomuyomu/presenters/manga_presenter.dart';
-import 'package:yomuyomu/models/manga.dart';
 import 'package:yomuyomu/contracts/library_contract.dart';
 import 'package:yomuyomu/presenters/library_presenter.dart';
 import 'package:yomuyomu/views/manga_detail_view.dart';
-import 'package:yomuyomu/views/manga_viewer.dart';
 
 Map<MangaStatus, bool> filterStatus = {
   MangaStatus.cancelled: false,
@@ -52,14 +51,7 @@ class _LibraryViewState extends State<LibraryView>
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  @override
-  void showImages(List<File> images) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => MangaViewer(mangaImages: images,)),
-    );
-  }
-
+  // Filter dialog for manga status
   void _showFilterStatusDialog() {
     showDialog(
       context: context,
@@ -114,6 +106,7 @@ class _LibraryViewState extends State<LibraryView>
     );
   }
 
+  // Filter dialog for manga genres
   void _showGenreFilterDialog() {
     showDialog(
       context: context,
@@ -198,10 +191,10 @@ class _LibraryViewState extends State<LibraryView>
     );
   }
 
-  void _openMangaDetail(String filePath) {
+  void _openMangaDetail(Manga selectedManga) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const MangaDetailView()),
+      MaterialPageRoute(builder: (_) => MangaDetailView(manga: selectedManga)),
     );
   }
 
@@ -271,7 +264,7 @@ class _LibraryViewState extends State<LibraryView>
         String displayedGenres = genres.take(3).join(" • ");
 
         return InkWell(
-          onTap: () => _openMangaDetail(mangas[index].filePath),
+          onTap: () => _openMangaDetail(manga),
           child: Container(
             margin: const EdgeInsets.symmetric(vertical: 8),
             padding: const EdgeInsets.all(8),
@@ -289,7 +282,7 @@ class _LibraryViewState extends State<LibraryView>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "${manga.title}    ${manga.author}",
+                        "${manga.title}    ${manga.authorId}",
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       Text(displayedGenres),
@@ -329,5 +322,25 @@ class _LibraryViewState extends State<LibraryView>
         );
       },
     );
+  }
+  
+  @override
+  void hideLoading() {
+    // TODO: implement hideLoading
+  }
+  
+  @override
+  void showLoading() {
+    // TODO: implement showLoading
+  }
+  
+  @override
+  void showMangaDetails(Manga manga) {
+    // TODO: implement showMangaDetails
+  }
+
+  @override
+  void showImagesInMemory(List<Uint8List> imageData) {
+    // TODO: implement showImagesInMemory
   }
 }

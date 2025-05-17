@@ -1,11 +1,11 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:yomuyomu/config/global_settings.dart';
 
 const double doublePageWidthThreshold = 1200;
 
 class MangaViewer extends StatelessWidget {
-  final List<File> mangaImages;
+  final List<Uint8List> mangaImages;
 
   const MangaViewer({super.key, required this.mangaImages});
 
@@ -34,7 +34,6 @@ class MangaViewer extends StatelessWidget {
                   itemCount: groupedPages.length,
                   itemBuilder: (context, index) {
                     final pageImages = groupedPages[index];
-
                     return _buildPageView(pageImages);
                   },
                 );
@@ -43,9 +42,9 @@ class MangaViewer extends StatelessWidget {
     );
   }
 
-  List<List<File>> _groupImagesIntoPages(List<File> images, bool isDoublePageLayout) {
+  List<List<Uint8List>> _groupImagesIntoPages(List<Uint8List> images, bool isDoublePageLayout) {
     final int imagesPerPage = isDoublePageLayout ? 2 : 1;
-    final List<List<File>> pages = [];
+    final List<List<Uint8List>> pages = [];
 
     for (int i = 0; i < images.length; i += imagesPerPage) {
       final pageImages = images.sublist(
@@ -58,10 +57,10 @@ class MangaViewer extends StatelessWidget {
     return pages;
   }
 
-  Widget _buildPageView(List<File> pageImages) {
+  Widget _buildPageView(List<Uint8List> pageImages) {
     if (pageImages.length == 1) {
       return Center(
-        child: Image.file(
+        child: Image.memory(
           pageImages[0],
           fit: BoxFit.contain,
           filterQuality: FilterQuality.high,
@@ -70,10 +69,10 @@ class MangaViewer extends StatelessWidget {
       );
     } else {
       return Row(
-        children: pageImages.map((image) {
+        children: pageImages.map((imageData) {
           return Expanded(
-            child: Image.file(
-              image,
+            child: Image.memory(
+              imageData,
               fit: BoxFit.contain,
               filterQuality: FilterQuality.high,
             ),
