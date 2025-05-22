@@ -1,9 +1,11 @@
+import 'package:yomuyomu/models/panel_model.dart';
+
 class Chapter {
   final String id;
   final String mangaId;
   final int chapterNumber;
   final int panelsCount;
-  final String filePath;
+  List<Panel> panels;
   final String? title;
   final String? synopsis;
   final String? coverUrl;
@@ -14,7 +16,7 @@ class Chapter {
     required this.mangaId,
     required this.chapterNumber,
     required this.panelsCount,
-    required this.filePath,
+    required this.panels,
     this.title,
     this.synopsis,
     this.coverUrl,
@@ -32,11 +34,12 @@ class Chapter {
     'PublicationDate': publicationDate?.millisecondsSinceEpoch,
   };
 
-  static Chapter fromMap(Map<String, dynamic> map) => Chapter(
+  static Chapter fromMap(Map<String, dynamic> map, {List<Panel>? panels}) => Chapter(
     id: map['ChapterID'],
     mangaId: map['MangaID'],
     chapterNumber: map['ChapterNumber'],
     panelsCount: map['PanelsCount'],
+    panels: panels ?? [],
     title: map['Title'],
     synopsis: map['Synopsis'],
     coverUrl: map['CoverImage'],
@@ -44,6 +47,5 @@ class Chapter {
         map['PublicationDate'] != null
             ? DateTime.fromMillisecondsSinceEpoch(map['PublicationDate'])
             : null,
-    filePath: '',
   );
 }

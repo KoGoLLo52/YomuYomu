@@ -1,29 +1,64 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
 import 'package:yomuyomu/config/global_settings.dart';
+import 'package:yomuyomu/firebase_options.dart';
 import 'package:yomuyomu/helpers/database_helper.dart';
 import 'package:yomuyomu/insert_mock_data.dart';
 import 'package:yomuyomu/views/account_view.dart';
-import 'package:yomuyomu/views/browse_view.dart';
 import 'package:yomuyomu/views/history_view.dart';
 import 'package:yomuyomu/views/library_view.dart';
-import 'package:yomuyomu/views/settings_view.dart'; 
+import 'package:yomuyomu/views/settings_view.dart';
+
+import 'package:firebase_core/firebase_core.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  print('Inicializando SharedPreferences');
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   final preferences = await SharedPreferences.getInstance();
   final themePreference = preferences.getString('theme_mode') ?? 'system';
+  final languagePreference = preferences.getString('language') ?? 'en';
+  final readerOrientation =
+      preferences.getString('reader_orientation') ?? 'vertical';
+
+  userDirectionPreference.value =
+      readerOrientation == 'horizontal' ? Axis.horizontal : Axis.vertical;
+
+  print('Idioma preferido: $languagePreference');
 
   appThemeMode.value = _getThemeFromPreference(themePreference);
 
-  sqfliteFfiInit();
-  databaseFactory = databaseFactoryFfi;
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    print('Inicializando sqflite_common_ffi para escritorio');
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  } else {
+    print('No se usa sqflite_common_ffi en esta plataforma');
+  }
 
-  WidgetsFlutterBinding.ensureInitialized();
-  final db = await DatabaseHelper.instance.database;
-  insertSampleData();
-  
+  try {
+    // print('Borrando base de datos (si existe)');
+    // await DatabaseHelper.instance.deleteDatabaseFile();
+    // print('Base de datos borrada');
+
+    // print('Insertando datos de muestra');
+    // await insertSampleData();
+    // print('Datos de muestra insertados');
+
+    print('Abriendo base de datos');
+    await DatabaseHelper.instance.database;
+    print('Base de datos abierta');
+  } catch (e, st) {
+    print('Error durante inicialización de base de datos: $e');
+    print(st);
+  }
+
+  print('Ejecutando la app');
   runApp(const AppRoot());
 }
 
@@ -87,7 +122,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   final List<Widget> screenViews = const [
     LibraryView(),
-    BrowseView(),
     HistoryView(),
     AccountView(),
     SettingsView(),
@@ -95,7 +129,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   final List<String> screenTitles = const [
     "Library",
-    "Browse",
     "History",
     "Account",
     "Settings",
@@ -116,10 +149,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         NavigationRailDestination(
           icon: Icon(Icons.library_books),
           label: Text('Library'),
-        ),
-        NavigationRailDestination(
-          icon: Icon(Icons.browse_gallery),
-          label: Text('Browse'),
         ),
         NavigationRailDestination(
           icon: Icon(Icons.history),
@@ -146,35 +175,42 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         return Scaffold(
           appBar: AppBar(
             title: Text(screenTitles[currentIndex]),
-            leading: isWideScreen
-                ? null
-                : IconButton(
-                    icon: const Icon(Icons.menu),
-                    onPressed: () => Scaffold.of(context).openDrawer(),
-                  ),
+            leading:
+                isWideScreen
+                    ? null
+                    : Builder(
+                      builder:
+                          (context) => IconButton(
+                            icon: const Icon(Icons.menu),
+                            onPressed: () => Scaffold.of(context).openDrawer(),
+                          ),
+                    ),
           ),
-          drawer: isWideScreen
-              ? null
-              : Drawer(
-                  child: ListView(
-                    children: [
-                      for (int i = 0; i < screenTitles.length; i++)
-                        ListTile(
-                          title: Text(screenTitles[i]),
-                          leading: _getIconForScreen(i),
-                          selected: currentIndex == i,
-                          onTap: () {
-                            onNavItemSelected(i);
-                            Navigator.pop(context);
-                          },
-                        ),
-                    ],
+          drawer:
+              isWideScreen
+                  ? null
+                  : Drawer(
+                    child: ListView(
+                      children: [
+                        for (int i = 0; i < screenTitles.length; i++)
+                          ListTile(
+                            title: Text(screenTitles[i]),
+                            leading: _getIconForScreen(i),
+                            selected: currentIndex == i,
+                            onTap: () {
+                              onNavItemSelected(i);
+                              Navigator.pop(context);
+                            },
+                          ),
+                      ],
+                    ),
                   ),
-                ),
           body: Row(
             children: [
               if (isWideScreen) _buildNavigationDrawer(context, true),
-              Expanded(child: screenViews[currentIndex]),
+              Expanded(
+                child: IndexedStack(index: currentIndex, children: screenViews),
+              ),
             ],
           ),
         );
@@ -187,12 +223,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       case 0:
         return const Icon(Icons.library_books);
       case 1:
-        return const Icon(Icons.browse_gallery);
-      case 2:
         return const Icon(Icons.history);
-      case 3:
+      case 2:
         return const Icon(Icons.account_circle);
-      case 4:
+      case 3:
       default:
         return const Icon(Icons.settings);
     }

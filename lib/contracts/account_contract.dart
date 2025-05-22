@@ -1,17 +1,14 @@
+import 'package:yomuyomu/models/account_model.dart';
+
 abstract class AccountViewContract {
+  void updateAccount(AccountModel account);
   void showLoading();
   void hideLoading();
   void showError(String message);
-  void updateUserInfo(String username, String date);
-  void updateActivity({
-    required String mostReadGenre,
-    required String mostReadAuthor,
-    required List<String> favoriteMangas,
-    required int finishedCount,
-    required int commentsPosted,
-  });
 }
 
+
 abstract class AccountPresenterContract {
-  void loadUserData();
+  Future<void> loadUserData();
+  Future<void> saveUserToDatabase(String nickname, String email);
 }

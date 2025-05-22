@@ -1,7 +1,11 @@
 class AccountModel {
   final String userID;
+  final String email;
   final String username;
   final DateTime creationDate;
+  final String? icon;
+  final int syncStatus;
+
   final String mostReadGenre;
   final String mostReadAuthor;
   final List<Uri> favoriteMangaCovers;
@@ -10,44 +14,41 @@ class AccountModel {
 
   AccountModel({
     required this.userID,
+    required this.email,
     required this.username,
     required this.creationDate,
-    required this.mostReadGenre,
-    required this.mostReadAuthor,
-    required this.favoriteMangaCovers,
-    required this.finishedMangasCount,
-    required this.commentsPosted,
+    this.icon,
+    this.syncStatus = 0,
+    this.mostReadGenre = '',
+    this.mostReadAuthor = '',
+    this.favoriteMangaCovers = const [],
+    this.finishedMangasCount = 0,
+    this.commentsPosted = 0,
   });
-
-  factory AccountModel.fromMap(Map<String, dynamic> map) {
-    return AccountModel(
-      userID: map['UserID'],
-      username: map['Username'],
-      creationDate: DateTime.fromMillisecondsSinceEpoch(map['CreationDate']),
-      mostReadGenre: map['MostReadGenre'],
-      mostReadAuthor: map['MostReadAuthor'],
-      favoriteMangaCovers: (map['FavoriteMangaCovers'] as List<dynamic>?)
-              ?.map((e) => Uri.parse(e.toString()))
-              .toList() ??
-          [],
-      finishedMangasCount: map['FinishedMangasCount'] ?? 0,
-      commentsPosted: map['CommentsPosted'] ?? 0,
-    );
-  }
 
   Map<String, dynamic> toMap() {
     return {
       'UserID': userID,
+      'Email': email,
       'Username': username,
+      'Icon': icon,
       'CreationDate': creationDate.millisecondsSinceEpoch,
-      'MostReadGenre': mostReadGenre,
-      'MostReadAuthor': mostReadAuthor,
-      'FavoriteMangaCovers': favoriteMangaCovers.map((e) => e.toString()).toList(),
-      'FinishedMangasCount': finishedMangasCount,
-      'CommentsPosted': commentsPosted,
+      'SyncStatus': syncStatus,
     };
   }
 
+  factory AccountModel.fromMap(Map<String, dynamic> map) {
+    return AccountModel(
+      userID: map['UserID'],
+      email: map['Email'],
+      username: map['Username'],
+      icon: map['Icon'],
+      creationDate: DateTime.fromMillisecondsSinceEpoch(map['CreationDate']),
+      syncStatus: map['SyncStatus'] ?? 0,
+    );
+  }
+
   factory AccountModel.fromJson(Map<String, dynamic> json) => AccountModel.fromMap(json);
+
   Map<String, dynamic> toJson() => toMap();
 }

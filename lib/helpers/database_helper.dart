@@ -62,6 +62,7 @@ class DatabaseHelper {
         Title TEXT NOT NULL,
         Sinopsis TEXT,
         Rating REAL,
+        CoverImage TEXT,
         StartPublicationDate INTEGER NOT NULL,
         NextPublicationDate INTEGER,
         Chapters INTEGER NOT NULL,
@@ -249,8 +250,13 @@ class DatabaseHelper {
   Future<List<Map<String, dynamic>>> getAllUsers() => queryAll('User');
   Future<Map<String, dynamic>?> getUserById(String id) =>
       queryById('User', 'UserID', id);
-  Future<int> updateUser(Map<String, dynamic> data, String id) =>
-      update('User', data, 'UserID', id);
+  Future<int> updateUser(Map<String, dynamic> data, String id) {
+    final filteredData = Map<String, dynamic>.from(data)
+      ..removeWhere((key, value) => value == null);
+
+    return update('User', filteredData, 'UserID', id);
+  }
+
   Future<int> deleteUser(String id) => delete('User', 'UserID', id);
 
   Future<int> insertAuthor(Map<String, dynamic> data) => insert('Author', data);
@@ -364,6 +370,55 @@ class DatabaseHelper {
     );
   }
 
+  Future<List<Map<String, dynamic>>> getPanelsByChapterId(
+    String chapterId,
+  ) async {
+    final db = await database;
+    return await db.query(
+      'Panel',
+      where: 'ChapterID = ?',
+      whereArgs: [chapterId],
+    );
+  }
+
+  Future<void> updateMangaCover(String mangaId, String coverUrl) async {
+    final db = await database;
+    await db.update(
+      'Manga',
+      {'CoverImage': coverUrl},
+      where: 'MangaID = ?',
+      whereArgs: [mangaId],
+    );
+  }
+
+  Future<void> updateMangaChapterCount(
+    String mangaId,
+    int chapterCountToAdd,
+  ) async {
+    final db = await database;
+
+    final result = await db.query(
+      'Manga',
+      columns: ['Chapters'],
+      where: 'MangaID = ?',
+      whereArgs: [mangaId],
+    );
+
+    if (result.isNotEmpty) {
+      final currentCount = result.first['Chapters'] as int;
+      final newCount = currentCount + chapterCountToAdd;
+
+      await db.update(
+        'Manga',
+        {'Chapters': newCount},
+        where: 'MangaID = ?',
+        whereArgs: [mangaId],
+      );
+    } else {
+      throw Exception("Manga con ID $mangaId no encontrado.");
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getUserLibrary(String userId) async {
     final db = await database;
     return await db.query(
@@ -389,7 +444,7 @@ class DatabaseHelper {
     final db = await database;
 
     final List<Map<String, dynamic>> maps = await db.query(
-      'Mangas',
+      'Manga',
       where: 'title = ?',
       whereArgs: [title],
     );
@@ -407,19 +462,63 @@ class DatabaseHelper {
     final List<Map<String, dynamic>> maps = await db.rawQuery(
       '''
     SELECT M.*
-  FROM Manga M
-  INNER JOIN FolderManga FM ON M.MangaID = FM.MangaID
-  INNER JOIN UserLibraryStructure ULS ON FM.FolderID = ULS.FolderID
-  WHERE ULS.UserID = ?
-
+    FROM Manga M
+    INNER JOIN FolderManga FM ON M.MangaID = FM.MangaID
+    INNER JOIN UserLibraryStructure ULS ON FM.FolderID = ULS.FolderID
+    WHERE ULS.UserID = ?
+    ORDER BY M.Title COLLATE NOCASE ASC;
   ''',
       [userId],
     );
-    print("🔍 Resultados obtenidos: ${maps.length}");
-    for (var map in maps) {
-      print("🧾 Manga encontrado: $map");
-    }
 
-    return maps.map((map) => Manga.fromMap(map)).toList();
+    return maps
+        .map((map) {
+          try {
+            return Manga.fromMap(map);
+          } catch (e) {
+            print('❌ Error al convertir manga: $map\n$e');
+            return null;
+          }
+        })
+        .whereType<Manga>()
+        .toList();
+  }
+
+  Future<Map<String, dynamic>?> getLastReadPanelForManga({
+    required String userId,
+    required String mangaId,
+  }) async {
+    final db = await database;
+
+    final result = await db.rawQuery(
+      '''
+    SELECT
+      up.PanelID,
+      p.ChapterID,
+      c.ChapterNumber,
+      p.PageNumber,
+      up.LastReadDate
+    FROM UserProgress up
+    JOIN Panel p ON up.PanelID = p.PanelID
+    JOIN Chapter c ON p.ChapterID = c.ChapterID
+    WHERE up.UserID = ?
+      AND c.MangaID = ?
+    ORDER BY up.LastReadDate DESC
+    LIMIT 1;
+  ''',
+      [userId, mangaId],
+    );
+
+    return result.isNotEmpty ? result.first : null;
+  }
+
+  Future<Map<String, dynamic>?> getUserByEmail(String email) async {
+    final db = await database;
+    final result = await db.query(
+      'User',
+      where: 'Email = ?',
+      whereArgs: [email],
+    );
+    return result.isNotEmpty ? result.first : null;
   }
 }

@@ -21,6 +21,17 @@ class FolderModel {
     this.syncStatus = 0,
   });
 
+  Map<String, dynamic> toMap() {
+    return {
+      'FolderID': id,
+      'UserID': userId,
+      'FolderName': name,
+      'Description': description,
+      'ParentFolderID': parentFolderId,
+      'SyncStatus': syncStatus,
+    };
+  }
+  
   factory FolderModel.fromMap(Map<String, dynamic> map) {
     return FolderModel(
       id: map['FolderID'],
@@ -31,17 +42,6 @@ class FolderModel {
       // mangas y subfolders se gestionan externamente mediante joins
       syncStatus: map['SyncStatus'] ?? 0,
     );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'FolderID': id,
-      'UserID': userId,
-      'FolderName': name,
-      'Description': description,
-      'ParentFolderID': parentFolderId,
-      'SyncStatus': syncStatus,
-    };
   }
 
   factory FolderModel.fromJson(Map<String, dynamic> json) => FolderModel.fromMap(json);

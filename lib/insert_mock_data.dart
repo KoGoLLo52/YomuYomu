@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:uuid/uuid.dart';
 import 'package:yomuyomu/helpers/database_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,9 +7,12 @@ Future<void> insertSampleData() async {
   final db = DatabaseHelper();
   final uuid = Uuid();
   final prefs = await SharedPreferences.getInstance();
-
+  String userId = uuid.v4();
+  final currentUser = FirebaseAuth.instance.currentUser;
+  if (currentUser != null) {
+    userId = currentUser.uid;
+  }
   // 1. Insertar usuario
-  final userId = uuid.v4();
   prefs.setString('userId', userId);
   await db.insertUser({
     'UserID': userId,
@@ -18,12 +22,29 @@ Future<void> insertSampleData() async {
     'CreationDate': DateTime.now().millisecondsSinceEpoch,
     'SyncStatus': 0,
   });
+  //1.1 Usuario local
+  await db.insertUser({
+    'UserID': 'local',
+    'Email': 'local@example.com',
+    'Username': 'local',
+    'Icon': null,
+    'CreationDate': DateTime.now().millisecondsSinceEpoch,
+    'SyncStatus': 0,
+  });
 
   // 2. Insertar autor
   final authorId = uuid.v4();
   await db.insertAuthor({
     'AuthorID': authorId,
-    'Name': 'Autor X',
+    'Name': 'PEpe',
+    'Biography': 'Un autor ficticio para pruebas.',
+    'Icon': null,
+    'BirthDate': DateTime(1980, 1, 1).millisecondsSinceEpoch,
+  });
+
+  await db.insertAuthor({
+    'AuthorID': 'unknown',
+    'Name': 'unknown',
     'Biography': 'Un autor ficticio para pruebas.',
     'Icon': null,
     'BirthDate': DateTime(1980, 1, 1).millisecondsSinceEpoch,

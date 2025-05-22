@@ -1,8 +1,10 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:yomuyomu/config/global_genres.dart';
 import 'package:yomuyomu/contracts/manga_contract.dart';
+import 'package:yomuyomu/models/author_model.dart';
 import 'package:yomuyomu/models/manga_model.dart';
 import 'package:yomuyomu/presenters/manga_presenter.dart';
 import 'package:yomuyomu/contracts/library_contract.dart';
@@ -27,6 +29,7 @@ class _LibraryViewState extends State<LibraryView>
     implements LibraryViewContract, FileViewContract {
   late LibraryPresenter libraryPresenter;
   List<Manga> mangas = [];
+  Map<String, Author> authors = {};
   late FileViewModel fileViewModel;
   late TextEditingController _searchController;
 
@@ -47,8 +50,17 @@ class _LibraryViewState extends State<LibraryView>
   }
 
   @override
+  void updateAuthorList(Map<String, Author> authorMap) {
+    setState(() {
+      authors = authorMap;
+    });
+  }
+
+  @override
   void showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   // Filter dialog for manga status
@@ -64,15 +76,17 @@ class _LibraryViewState extends State<LibraryView>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    ...MangaStatus.values.map((status) => CheckboxListTile(
-                          title: Text(status.name),
-                          value: filterStatus[status],
-                          onChanged: (bool? newValue) {
-                            setState(() {
-                              filterStatus[status] = newValue!;
-                            });
-                          },
-                        )),
+                    ...MangaStatus.values.map(
+                      (status) => CheckboxListTile(
+                        title: Text(status.name),
+                        value: filterStatus[status],
+                        onChanged: (bool? newValue) {
+                          setState(() {
+                            filterStatus[status] = newValue!;
+                          });
+                        },
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -119,18 +133,19 @@ class _LibraryViewState extends State<LibraryView>
                 child: Wrap(
                   spacing: 8.0,
                   runSpacing: 8.0,
-                  children: genreFilterStatus.keys.map((genre) {
-                    final isSelected = genreFilterStatus[genre]!;
-                    return FilterChip(
-                      label: Text(genre),
-                      selected: isSelected,
-                      onSelected: (bool selected) {
-                        setState(() {
-                          genreFilterStatus[genre] = selected;
-                        });
-                      },
-                    );
-                  }).toList(),
+                  children:
+                      genreFilterStatus.keys.map((genre) {
+                        final isSelected = genreFilterStatus[genre]!;
+                        return FilterChip(
+                          label: Text(genre),
+                          selected: isSelected,
+                          onSelected: (bool selected) {
+                            setState(() {
+                              genreFilterStatus[genre] = selected;
+                            });
+                          },
+                        );
+                      }).toList(),
                 ),
               ),
               actions: [
@@ -171,23 +186,24 @@ class _LibraryViewState extends State<LibraryView>
   void _showSortDialog() {
     showModalBottomSheet(
       context: context,
-      builder: (_) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            title: const Text("Alphabetically"),
-            onTap: () => libraryPresenter.sortBy(0),
+      builder:
+          (_) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: const Text("Alphabetically"),
+                onTap: () => libraryPresenter.sortBy(0),
+              ),
+              ListTile(
+                title: const Text("Total Chapters"),
+                onTap: () => libraryPresenter.sortBy(1),
+              ),
+              ListTile(
+                title: const Text("Rating"),
+                onTap: () => libraryPresenter.sortBy(2),
+              ),
+            ],
           ),
-          ListTile(
-            title: const Text("Total Chapters"),
-            onTap: () => libraryPresenter.sortBy(1),
-          ),
-          ListTile(
-            title: const Text("Rating"),
-            onTap: () => libraryPresenter.sortBy(2),
-          ),
-        ],
-      ),
     );
   }
 
@@ -211,6 +227,15 @@ class _LibraryViewState extends State<LibraryView>
         ],
       ),
       body: _buildMangaList(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          await libraryPresenter.importCBZFile(
+            isVolume: true,
+          ); 
+        },
+        tooltip: "Import CBZ Manga",
+        child: const Icon(Icons.add),
+      ),
     );
   }
 
@@ -275,14 +300,28 @@ class _LibraryViewState extends State<LibraryView>
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(width: 80, height: 120, child: Icon(Icons.book)),
+                SizedBox(
+                  width: 80,
+                  height: 120,
+                  child:
+                      manga.coverUrl != null
+                          ? Image.file(
+                            File(manga.coverUrl!),
+                            fit: BoxFit.cover,
+                            errorBuilder:
+                                (context, error, stackTrace) =>
+                                    const Icon(Icons.broken_image),
+                          )
+                          : const Icon(Icons.book),
+                ),
+
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "${manga.title}    ${manga.authorId}",
+                        "${manga.title}    ${authors[manga.authorId]?.name ?? manga.authorId}",
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       Text(displayedGenres),
@@ -323,17 +362,17 @@ class _LibraryViewState extends State<LibraryView>
       },
     );
   }
-  
+
   @override
   void hideLoading() {
     // TODO: implement hideLoading
   }
-  
+
   @override
   void showLoading() {
     // TODO: implement showLoading
   }
-  
+
   @override
   void showMangaDetails(Manga manga) {
     // TODO: implement showMangaDetails

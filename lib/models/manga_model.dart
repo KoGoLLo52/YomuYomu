@@ -57,11 +57,12 @@ class Manga {
     'MangaID': id,
     'AuthorID': authorId,
     'Title': title,
-    'synopsis': synopsis,
+    'Sinopsis': synopsis,
     'Rating': rating,
     'StartPublicationDate': startPublicationDate.millisecondsSinceEpoch,
     'NextPublicationDate': nextPublicationDate?.millisecondsSinceEpoch,
     'Chapters': totalChaptersAmount,
+    'CoverImage': coverUrl,
   };
 
   factory Manga.fromMap(Map<String, dynamic> map) {
@@ -78,9 +79,9 @@ class Manga {
       nextPublicationDate:
           map['NextPublicationDate'] != null
               ? DateTime.fromMillisecondsSinceEpoch(map['NextPublicationDate'])
-              : DateTime.now(),
+              : null,
       totalChaptersAmount: map['Chapters'] ?? 0,
-      // Otros campos como chapterProgress, lastChapterRead, isStarred... si están en memoria o se agregan luego
+      coverUrl: map['CoverImage'], 
     );
   }
 }

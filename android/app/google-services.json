@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1018729185356",
+    "project_id": "yomuyomu-40bd6",
+    "storage_bucket": "yomuyomu-40bd6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1018729185356:android:47506c9b8919167ea834e9",
+        "android_client_info": {
+          "package_name": "com.example.yomuyomu"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAjBb8Q1Va_pKgaJHyrjccDhPT3dVcroy8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

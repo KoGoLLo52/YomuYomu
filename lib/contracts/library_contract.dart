@@ -1,3 +1,4 @@
+import 'package:yomuyomu/models/author_model.dart';
 import 'package:yomuyomu/models/manga_model.dart';
 
 abstract class LibraryViewContract {
@@ -5,6 +6,7 @@ abstract class LibraryViewContract {
   void hideLoading();
   void showError(String message);
   void updateMangaList(List<Manga> mangas);
+  void updateAuthorList(Map<String, Author> authorMap);
 }
 
 abstract class LibraryPresenterContract {

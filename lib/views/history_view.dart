@@ -1,12 +1,14 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:yomuyomu/config/global_genres.dart';
 import 'package:yomuyomu/contracts/manga_contract.dart';
+import 'package:yomuyomu/models/author_model.dart';
 import 'package:yomuyomu/models/manga_model.dart';
-import 'package:yomuyomu/presenters/manga_presenter.dart';
-import 'package:yomuyomu/contracts/library_contract.dart';
 import 'package:yomuyomu/presenters/library_presenter.dart';
+import 'package:yomuyomu/contracts/library_contract.dart';
+import 'package:yomuyomu/presenters/manga_presenter.dart';
 import 'package:yomuyomu/views/library_view.dart';
 
 final DateFormat dateFormat = DateFormat('dd/MM/yyyy');
@@ -15,15 +17,17 @@ class HistoryView extends StatefulWidget {
   const HistoryView({super.key});
 
   @override
-  _HistoryViewState createState() => _HistoryViewState();
+  State<HistoryView> createState() => _HistoryViewState();
 }
 
 class _HistoryViewState extends State<HistoryView>
     implements LibraryViewContract, FileViewContract {
-  late LibraryPresenter _libraryPresenter;
-  late FileViewModel _fileViewModel;
-  late TextEditingController _searchController;
+  late final LibraryPresenter _libraryPresenter;
+  late final FileViewModel _fileViewModel;
+  late final TextEditingController _searchController;
+
   List<Manga> _mangas = [];
+  Map<String, Author> _authors = {};
 
   @override
   void initState() {
@@ -37,121 +41,41 @@ class _HistoryViewState extends State<HistoryView>
   @override
   void updateMangaList(List<Manga> updatedMangas) {
     setState(() {
-      _mangas = updatedMangas;
+      _mangas = List.from(updatedMangas)
+        ..sort((a, b) => b.lastReadDate?.compareTo(a.lastReadDate ?? DateTime(0)) ?? 0);
     });
   }
 
   @override
-  void showError(String errorMessage) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
+  void updateAuthorList(Map<String, Author> authorMap) {
+    setState(() {
+      _authors = authorMap;
+    });
   }
 
-  // Status filter
-  void _showStatusFilterDialog() {
-    showDialog(
-      context: context,
-      builder: (_) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text("Filter By Status"),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: MangaStatus.values.map((status) {
-                    return CheckboxListTile(
-                      title: Text(status.toString()),
-                      value: _getFilterStatus(status),
-                      onChanged: (isSelected) {
-                        setState(() {
-                          _toggleStatusFilter(status, isSelected!);
-                        });
-                      },
-                    );
-                  }).toList(),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Cancel"),
-                ),
-                TextButton(
-                  onPressed: () {
-                    final selectedStatuses = _getSelectedStatuses();
-                    if (selectedStatuses.isEmpty) {
-                      _libraryPresenter.showAll();
-                    } else {
-                      _libraryPresenter.filterByStatus(selectedStatuses);
-                    }
-                    Navigator.pop(context);
-                  },
-                  child: const Text("Apply"),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  // Genre filter
-  void _showGenreFilterDialog() {
-    showDialog(
-      context: context,
-      builder: (_) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text("Filter by Genre"),
-              content: SingleChildScrollView(
-                child: Wrap(
-                  spacing: 8.0,
-                  runSpacing: 8.0,
-                  children: genreFilterStatus.keys.map((genre) {
-                    return FilterChip(
-                      label: Text(genre),
-                      selected: genreFilterStatus[genre]!,
-                      onSelected: (isSelected) {
-                        setState(() {
-                          genreFilterStatus[genre] = isSelected;
-                        });
-                      },
-                    );
-                  }).toList(),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Cancel"),
-                ),
-                TextButton(
-                  onPressed: () {
-                    final selectedGenres = _getSelectedGenres();
-                    if (selectedGenres.isEmpty) {
-                      _libraryPresenter.showAll();
-                    } else {
-                      _libraryPresenter.filterByGenres(selectedGenres);
-                    }
-                    Navigator.pop(context);
-                  },
-                  child: const Text("Apply"),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
+  @override
+  void showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _onSearchChanged(String query) {
     _libraryPresenter.filterMangasByTitle(query);
   }
 
-  // Sort options
+  void _showStatusFilterDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => _buildStatusFilterDialog(),
+    );
+  }
+
+  void _showGenreFilterDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => _buildGenreFilterDialog(),
+    );
+  }
+
   void _showSortDialog() {
     showModalBottomSheet(
       context: context,
@@ -166,27 +90,132 @@ class _HistoryViewState extends State<HistoryView>
     );
   }
 
-  ListTile _buildSortOption(String label, int option) {
+  ListTile _buildSortOption(String label, int index) {
     return ListTile(
       title: Text(label),
-      onTap: () => _libraryPresenter.sortBy(option),
+      onTap: () => _libraryPresenter.sortBy(index),
     );
   }
 
-  bool _getFilterStatus(MangaStatus status) {
-    return filterStatus[status] ?? false;
+  Widget _buildStatusFilterDialog() {
+    return StatefulBuilder(
+      builder: (context, setState) => AlertDialog(
+        title: const Text("Filter By Status"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: MangaStatus.values.map((status) {
+            return CheckboxListTile(
+              title: Text(status.name),
+              value: filterStatus[status],
+              onChanged: (value) {
+                setState(() => filterStatus[status] = value!);
+              },
+            );
+          }).toList(),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () {
+              final selected = filterStatus.entries.where((e) => e.value).map((e) => e.key).toList();
+              selected.isEmpty ? _libraryPresenter.showAll() : _libraryPresenter.filterByStatus(selected);
+              Navigator.pop(context);
+            },
+            child: const Text("Apply"),
+          ),
+        ],
+      ),
+    );
   }
 
-  void _toggleStatusFilter(MangaStatus status, bool isSelected) {
-    filterStatus[status] = isSelected;
+  Widget _buildGenreFilterDialog() {
+    return StatefulBuilder(
+      builder: (context, setState) => AlertDialog(
+        title: const Text("Filter by Genre"),
+        content: Wrap(
+          spacing: 8.0,
+          runSpacing: 8.0,
+          children: genreFilterStatus.entries.map((entry) {
+            return FilterChip(
+              label: Text(entry.key),
+              selected: entry.value,
+              onSelected: (value) => setState(() => genreFilterStatus[entry.key] = value),
+            );
+          }).toList(),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () {
+              final selectedGenres = genreFilterStatus.entries
+                  .where((e) => e.value)
+                  .map((e) => e.key)
+                  .toList();
+              selectedGenres.isEmpty
+                  ? _libraryPresenter.showAll()
+                  : _libraryPresenter.filterByGenres(selectedGenres);
+              Navigator.pop(context);
+            },
+            child: const Text("Apply"),
+          ),
+        ],
+      ),
+    );
   }
 
-  List<MangaStatus> _getSelectedStatuses() {
-    return filterStatus.entries.where((e) => e.value).map((e) => e.key).toList();
-  }
+  Widget _buildMangaCard(Manga manga) {
+    final genres = manga.genres.take(3).join(" • ");
+    final lastRead = manga.lastReadDate != null
+        ? dateFormat.format(manga.lastReadDate!)
+        : "Unknown";
 
-  List<String> _getSelectedGenres() {
-    return genreFilterStatus.entries.where((e) => e.value).map((e) => e.key).toList();
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.black),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+                  width: 80,
+                  height: 120,
+                  child:
+                      manga.coverUrl != null
+                          ? Image.file(
+                            File(manga.coverUrl!),
+                            fit: BoxFit.cover,
+                            errorBuilder:
+                                (context, error, stackTrace) =>
+                                    const Icon(Icons.broken_image),
+                          )
+                          : const Icon(Icons.book),
+                ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "${manga.title} - ${_authors[manga.authorId]?.name ?? manga.authorId}",
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(genres),
+                const SizedBox(height: 8),
+                Text("Chapters: ${manga.totalChaptersAmount}"),
+                const SizedBox(height: 4),
+                Text("Last read: ${manga.lastChapterRead} ($lastRead)"),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.share),
+            onPressed: () => debugPrint("Share ${manga.title}"),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -195,24 +224,20 @@ class _HistoryViewState extends State<HistoryView>
       appBar: AppBar(
         title: const Text("History"),
         actions: [
-          _buildSearchBar(),
-          _buildFilterButton(),
-          _buildGenreButton(),
-          _buildSortButton(),
+          _buildSearchField(),
+          IconButton(icon: const Icon(Icons.filter_list), onPressed: _showStatusFilterDialog),
+          IconButton(icon: const Icon(Icons.label), onPressed: _showGenreFilterDialog),
+          IconButton(icon: const Icon(Icons.sort), onPressed: _showSortDialog),
         ],
       ),
       body: ListView.builder(
         itemCount: _mangas.length,
-        itemBuilder: (context, index) {
-          final manga = _mangas[index];
-          final genres = manga.genres.take(3).join(" • ");
-          return _buildMangaCard(manga, genres);
-        },
+        itemBuilder: (context, index) => _buildMangaCard(_mangas[index]),
       ),
     );
   }
 
-  Padding _buildSearchBar() {
+  Widget _buildSearchField() {
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: SizedBox(
@@ -229,92 +254,12 @@ class _HistoryViewState extends State<HistoryView>
     );
   }
 
-  IconButton _buildFilterButton() {
-    return IconButton(
-      icon: const Icon(Icons.filter_list),
-      onPressed: _showStatusFilterDialog,
-    );
-  }
-
-  IconButton _buildGenreButton() {
-    return IconButton(
-      icon: const Icon(Icons.label),
-      onPressed: _showGenreFilterDialog,
-    );
-  }
-
-  IconButton _buildSortButton() {
-    return IconButton(
-      icon: const Icon(Icons.sort),
-      onPressed: _showSortDialog,
-    );
-  }
-
-  Container _buildMangaCard(Manga manga, String genres) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.black),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(width: 80, height: 120, child: const Icon(Icons.book)),
-          const SizedBox(width: 10),
-          _buildMangaInfo(manga, genres),
-          _buildShareButton(manga),
-        ],
-      ),
-    );
-  }
-
-  Expanded _buildMangaInfo(Manga manga, String genres) {
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "${manga.title}    ${manga.authorId}",
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          Text(genres),
-          const SizedBox(height: 8),
-          Text("Chapters: ${manga.totalChaptersAmount}"),
-          const SizedBox(height: 4),
-          Text("Last read Chapter: ${manga.lastChapterRead}"),
-        ],
-      ),
-    );
-  }
-
-  IconButton _buildShareButton(Manga manga) {
-    return IconButton(
-      icon: const Icon(Icons.share),
-      onPressed: () {
-        print("Compartir ${manga.title}");
-      },
-    );
-  }
-  
   @override
-  void hideLoading() {
-    // TODO: implement hideLoading
-  }
-  
+  void hideLoading() {}
   @override
-  void showLoading() {
-    // TODO: implement showLoading
-  }
-  
+  void showLoading() {}
   @override
-  void showMangaDetails(Manga manga) {
-    // TODO: implement showMangaDetails
-  }
-
+  void showMangaDetails(Manga manga) {}
   @override
-  void showImagesInMemory(List<Uint8List> imageData) {
-    // TODO: implement showImagesInMemory
-  }
+  void showImagesInMemory(List<Uint8List> imageData) {}
 }

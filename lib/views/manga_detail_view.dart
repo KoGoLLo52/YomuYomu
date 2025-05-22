@@ -1,9 +1,10 @@
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:yomuyomu/contracts/manga_contract.dart';
-import 'package:yomuyomu/models/chapter_model.dart';
 import 'package:yomuyomu/contracts/manga_detail_contract.dart';
+import 'package:yomuyomu/models/chapter_model.dart';
 import 'package:yomuyomu/models/manga_model.dart';
 import 'package:yomuyomu/presenters/manga_detail_presenter.dart';
 import 'package:yomuyomu/presenters/manga_presenter.dart';
@@ -19,9 +20,11 @@ class MangaDetailView extends StatefulWidget {
 
 class _MangaDetailViewState extends State<MangaDetailView>
     implements MangaDetailViewContract, FileViewContract {
-  late MangaDetailPresenter _presenter;
-  late FileViewModel _fileViewModel;
+  late final MangaDetailPresenter _presenter;
+  late final FileViewModel _fileViewModel;
   final TextEditingController _searchController = TextEditingController();
+
+  bool _sortTitleAsc = true;
 
   Manga? _currentManga;
   List<Chapter> _availableChapters = [];
@@ -35,6 +38,13 @@ class _MangaDetailViewState extends State<MangaDetailView>
     _presenter.loadMangaDetail(widget.manga.id);
   }
 
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
   void _onSearchChanged() {
     final query = _searchController.text.trim();
     if (query.isEmpty) {
@@ -44,16 +54,147 @@ class _MangaDetailViewState extends State<MangaDetailView>
     }
   }
 
-  @override
-  void dispose() {
-    _searchController.removeListener(_onSearchChanged);
-    _searchController.dispose();
-    super.dispose();
+  void _onChapterSelected(Chapter chapter) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (_) => MangaViewer(
+              chapters: _availableChapters,
+              initialChapter: chapter,
+            ),
+      ),
+    );
   }
 
-  void _onChapterSelected(Chapter chapter) async {
-    // Asegúrate de que chapter.chapterId esté definido y coincida con CBZHandler
-    await _fileViewModel.openSpecificChapter(chapter.filePath, chapter.id);
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      body:
+          _currentManga == null
+              ? const Center(child: CircularProgressIndicator())
+              : CustomScrollView(
+                slivers: [
+                  SliverAppBar(
+                    pinned: true,
+                    expandedHeight: 220.0,
+                    flexibleSpace: FlexibleSpaceBar(
+                      title: Text(_currentManga!.title),
+                      background: _buildCoverImage(),
+                    ),
+                  ),
+                  SliverToBoxAdapter(child: _buildSynopsis()),
+                  SliverToBoxAdapter(child: _buildChapterSection()),
+                  SliverToBoxAdapter(child: _buildChapterSearchField()),
+                  _buildChapterList(),
+                ],
+              ),
+    );
+  }
+
+  Widget _buildCoverImage() {
+    final coverUrl = _currentManga?.coverUrl;
+    return coverUrl != null && File(coverUrl).existsSync()
+        ? Image.file(File(coverUrl), fit: BoxFit.cover, width: double.infinity)
+        : Image.asset(
+          'assets/images/placeholder.jpg',
+          fit: BoxFit.cover,
+          width: double.infinity,
+        );
+  }
+
+  Widget _buildSynopsis() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Text(
+        _currentManga?.synopsis ?? 'No synopsis available.',
+        style: const TextStyle(fontSize: 15.0, height: 1.5),
+      ),
+    );
+  }
+
+  Widget _buildChapterSection() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Text(
+            "Chapters",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+        ),
+        IconButton(
+          icon: Icon(
+            _sortTitleAsc ? Icons.sort_by_alpha : Icons.sort_by_alpha_outlined,
+          ),
+          tooltip: "Ordenar por título (${_sortTitleAsc ? 'A-Z' : 'Z-A'})",
+          onPressed: () {
+            setState(() {
+              _sortTitleAsc = !_sortTitleAsc;
+              _presenter.sortChaptersByTitle(ascending: _sortTitleAsc);
+            });
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildChapterSearchField() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: TextField(
+        controller: _searchController,
+        decoration: const InputDecoration(
+          hintText: "Find Chapter",
+          border: OutlineInputBorder(),
+          prefixIcon: Icon(Icons.search),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChapterList() {
+    if (_availableChapters.isEmpty) {
+      return const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Center(child: Text("No chapters found.")),
+        ),
+      );
+    }
+
+    return SliverList.separated(
+      itemCount: _availableChapters.length,
+      separatorBuilder: (_, __) => const Divider(height: 1),
+      itemBuilder: (_, index) {
+        final chapter = _availableChapters[index];
+        final cover = chapter.coverUrl;
+
+        return ListTile(
+          leading:
+              cover != null && File(cover).existsSync()
+                  ? Image.file(
+                    File(cover),
+                    width: 50,
+                    height: 70,
+                    fit: BoxFit.cover,
+                  )
+                  : Image.asset(
+                    'assets/images/placeholder.jpg',
+                    width: 50,
+                    height: 70,
+                  ),
+          title: Text(chapter.title ?? 'No Title'),
+          subtitle: Text(
+            "Published: ${chapter.publicationDate?.toLocal().toIso8601String().split('T').first ?? 'Unknown'}",
+          ),
+          onTap: () => _onChapterSelected(chapter),
+        );
+      },
+    );
   }
 
   @override
@@ -71,118 +212,10 @@ class _MangaDetailViewState extends State<MangaDetailView>
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Manga Details")),
-      body: _currentManga == null
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildMangaHeader(),
-                _buildSynopsis(),
-                _buildChapterSection(),
-                _buildChapterSearchField(),
-                _buildChapterList(),
-              ],
-            ),
-    );
-  }
-
-  Widget _buildMangaHeader() {
-    return ListTile(
-      leading: Image.network(
-        _currentManga!.coverUrl ?? 'https://example.com/default.jpg',
-      ),
-      title: Text(_currentManga!.title),
-      subtitle: Text("by ${_currentManga!.authorId}"),
-    );
-  }
-
-  Widget _buildSynopsis() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Text(
-        _currentManga!.synopsis ?? 'No synopsis available.',
-        style: const TextStyle(fontSize: 14.0),
-      ),
-    );
-  }
-
-  Widget _buildChapterSection() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Text(
-            "Chapters",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-        ),
-        IconButton(
-          icon: const Icon(Icons.sort),
-          onPressed: () {
-            _availableChapters.sort(
-              (a, b) => a.publicationDate!.compareTo(b.publicationDate!),
-            );
-            setState(() {});
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildChapterSearchField() {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: TextField(
-        controller: _searchController,
-        decoration: const InputDecoration(
-          hintText: "Find Chapter",
-          border: OutlineInputBorder(),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildChapterList() {
-    return Expanded(
-      child: ListView.builder(
-        itemCount: _availableChapters.length,
-        itemBuilder: (_, index) {
-          final chapter = _availableChapters[index];
-          return ListTile(
-            leading: Image.network(
-              chapter.coverUrl ?? 'https://example.com/default.jpg',
-            ),
-            title: Text(chapter.title ?? 'No Title'),
-            subtitle: Text("Published: ${chapter.publicationDate}"),
-            onTap: () => _onChapterSelected(chapter),
-          );
-        },
-      ),
-    );
-  }
+  void showError(String message) {}
 
   @override
-  void showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-  }
-
-  @override
-  void showImagesInMemory(List<Uint8List> imageData) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => MangaViewer(mangaImages: imageData),
-      ),
-    );
-  }
-
-  // Métodos sin implementar (según contrato, pero no usados)
-  @override
-  void showImages(List<File> images) {}
+  void showImagesInMemory(List<Uint8List> imageData) {}
 
   @override
   void hideLoading() {}

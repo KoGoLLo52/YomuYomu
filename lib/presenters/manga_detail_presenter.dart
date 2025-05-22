@@ -2,6 +2,7 @@ import 'package:yomuyomu/contracts/manga_detail_contract.dart';
 import 'package:yomuyomu/helpers/database_helper.dart';
 import 'package:yomuyomu/models/chapter_model.dart';
 import 'package:yomuyomu/models/manga_model.dart';
+import 'package:yomuyomu/models/panel_model.dart';
 
 class MangaDetailPresenter {
   final MangaDetailViewContract _view;
@@ -9,7 +10,6 @@ class MangaDetailPresenter {
   final DatabaseHelper _databaseHelper = DatabaseHelper();
 
   MangaDetailPresenter(this._view);
-
   Future<void> loadMangaDetail(String mangaID) async {
     try {
       final mangaData = await _databaseHelper.getMangaById(mangaID);
@@ -18,22 +18,13 @@ class MangaDetailPresenter {
         return;
       }
 
-      _manga = Manga(
-        id: mangaData['MangaID'],
-        title: mangaData['Title'],
-        authorId: mangaData['AuthorID'],
-        synopsis: mangaData['Synopsis'],
-        rating: (mangaData['Rating'] ?? 0).toDouble(),
-        startPublicationDate: DateTime.fromMillisecondsSinceEpoch(mangaData['StartPublicationDate']),
-        nextPublicationDate: mangaData['NextPublicationDate'] != null
-            ? DateTime.fromMillisecondsSinceEpoch(mangaData['NextPublicationDate'])
-            : null,
-        totalChaptersAmount: mangaData['Chapters'],
-        chapters: await _loadChapters(mangaID),
-      );
+      final manga = Manga.fromMap(mangaData);
+      final chapters = await _loadChapters(mangaID);
+      _manga = manga;
+      manga.chapters = chapters;
 
-      _view.showManga(_manga!);
-      _view.showChapters(_manga!.chapters ?? []);
+      _view.showManga(manga);
+      _view.showChapters(manga.chapters ?? []);
     } catch (e) {
       _view.showError("Error al cargar el manga: $e");
     }
@@ -42,9 +33,21 @@ class MangaDetailPresenter {
   Future<List<Chapter>> _loadChapters(String mangaID) async {
     try {
       final chaptersData = await _databaseHelper.getChaptersByMangaId(mangaID);
-      return chaptersData.map((chapterData) {
-        return Chapter.fromMap(chapterData);
-      }).toList();
+
+      final List<Chapter> chapters = [];
+
+      for (final chapterData in chaptersData) {
+        final chapter = Chapter.fromMap(chapterData);
+        // Cargar los paneles de este capítulo
+        final panelsData = await _databaseHelper.getPanelsByChapterId(
+          chapter.id,
+        );
+        chapter.panels =
+            panelsData.map((panelData) => Panel.fromMap(panelData)).toList();
+        chapters.add(chapter);
+      }
+
+      return chapters;
     } catch (e) {
       _view.showError("Error al cargar los capítulos: $e");
       return [];
@@ -58,10 +61,27 @@ class MangaDetailPresenter {
       return;
     }
 
-    final results = chapters
-        .where((c) => c.title?.toLowerCase().contains(query.toLowerCase()) ?? false)
-        .toList();
+    final results =
+        chapters
+            .where(
+              (c) =>
+                  c.title?.toLowerCase().contains(query.toLowerCase()) ?? false,
+            )
+            .toList();
 
     _view.showChapters(results);
   }
+
+  void sortChaptersByTitle({required bool ascending}) {
+  final chapters = _manga?.chapters;
+  if (chapters == null || chapters.isEmpty) return;
+
+  chapters.sort((a, b) {
+    final aTitle = a.title ?? '';
+    final bTitle = b.title ?? '';
+    return ascending ? aTitle.compareTo(bTitle) : bTitle.compareTo(aTitle);
+  });
+
+  _view.showChapters(List<Chapter>.from(chapters));
+}
 }
