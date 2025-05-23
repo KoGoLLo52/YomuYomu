@@ -2,6 +2,7 @@ import 'package:yomuyomu/contracts/account_contract.dart';
 import 'package:yomuyomu/helpers/database_helper.dart';
 import 'package:yomuyomu/models/account_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:yomuyomu/models/usernote_model.dart';
 
 class AccountPresenter implements AccountPresenterContract {
   final AccountViewContract _view;
@@ -48,11 +49,9 @@ class AccountPresenter implements AccountPresenterContract {
         username: currentUser.displayName ?? userMap['Username'],
         email: email,
         icon: userMap['Icon'] ?? 'default_user_pfp.png',
-        creationDate: DateTime(
-          userMap['CreationDate'],
-        ),
+        creationDate: DateTime(userMap['CreationDate']),
         syncStatus: userMap['SyncStatus'] ?? 0,
-        mostReadGenre: '', // o puedes mantener alguno si está en userMap
+        mostReadGenre: '',
         mostReadAuthor: '',
         favoriteMangaCovers: [],
         finishedMangasCount: 0,
@@ -63,25 +62,31 @@ class AccountPresenter implements AccountPresenterContract {
       userMap = updatedUser.toMap();
     }
 
-    // Extra data
     final comments = await _databaseHelper.getAllComments();
-    final notes = await _databaseHelper.getAllUserNotes();
+    final List<UserNote> notes = await _databaseHelper.getUserNotes(currentUser.uid,);
 
-    final favoritedCovers =
-        notes
-            .where((n) => n['IsFavorited'] == 1)
+    final List<UserNote> safeNotes = notes;
+
+    final List<Uri> favoritedCovers =
+        safeNotes
+            .where((note) => note.isFavorited)
             .take(5)
-            .map((n) => Uri.parse(n['MangaID'] as String))
+            .map((note) => Uri.parse(note.mangaId))
             .toList();
+
+    final int finishedCount = safeNotes.where((note) => !note.isPending).length;
+
+    final String userId = userMap!['UserID'] as String;
+    final int commentCount =
+        comments.where((c) => c['UserID'] == userId).length;
 
     return AccountModel.fromMap({
       ...userMap,
       'MostReadGenre': 'Shonen',
       'MostReadAuthor': 'Autor Ejemplo',
       'FavoriteMangaCovers': favoritedCovers,
-      'FinishedMangasCount': notes.where((n) => n['IsPending'] == 0).length,
-      'CommentsPosted':
-          comments.where((c) => c['UserID'] == userMap!['UserID']).length,
+      'FinishedMangasCount': finishedCount,
+      'CommentsPosted': commentCount,
     });
   }
 

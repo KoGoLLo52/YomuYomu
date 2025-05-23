@@ -1,7 +1,9 @@
 import 'package:permission_handler/permission_handler.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:yomuyomu/models/genre_model.dart';
 import 'package:yomuyomu/models/manga_model.dart';
+import 'package:yomuyomu/models/usernote_model.dart';
 
 class DatabaseHelper {
   static const _databaseName = "yomuyomu.db";
@@ -59,15 +61,17 @@ class DatabaseHelper {
       CREATE TABLE IF NOT EXISTS Manga (
         MangaID TEXT PRIMARY KEY,
         AuthorID TEXT,
+        UserID TEXT,
         Title TEXT NOT NULL,
-        Sinopsis TEXT,
+        Synopsis TEXT,
         Rating REAL,
         CoverImage TEXT,
         StartPublicationDate INTEGER NOT NULL,
         NextPublicationDate INTEGER,
         Chapters INTEGER NOT NULL,
         SyncStatus INTEGER DEFAULT 0,
-        FOREIGN KEY (AuthorID) REFERENCES Author(AuthorID)
+        FOREIGN KEY (AuthorID) REFERENCES Author(AuthorID),
+        FOREIGN KEY (UserID) REFERENCES User(UserID)
       );
     ''');
 
@@ -93,7 +97,7 @@ class DatabaseHelper {
         ImagePath TEXT NOT NULL,
         PageNumber INTEGER NOT NULL,
         SyncStatus INTEGER DEFAULT 0,
-        FOREIGN KEY (ChapterID) REFERENCES Chapter(ChapterID)
+        FOREIGN KEY (ChapterID) REFERENCES Chapter(ChapterID) ON DELETE CASCADE
       );
     ''');
 
@@ -111,19 +115,6 @@ class DatabaseHelper {
         PRIMARY KEY (MangaID, GenreID),
         FOREIGN KEY (MangaID) REFERENCES Manga(MangaID),
         FOREIGN KEY (GenreID) REFERENCES Genre(GenreID)
-      );
-    ''');
-
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS Comment (
-        CommentID TEXT PRIMARY KEY,
-        MangaID TEXT NOT NULL,
-        UserID TEXT NOT NULL,
-        Content TEXT NOT NULL,
-        Likes INTEGER DEFAULT 0,
-        Dislikes INTEGER DEFAULT 0,
-        FOREIGN KEY (MangaID) REFERENCES Manga(MangaID),
-        FOREIGN KEY (UserID) REFERENCES User(UserID)
       );
     ''');
 
@@ -165,36 +156,10 @@ class DatabaseHelper {
         FOREIGN KEY (UserID) REFERENCES User(UserID)
       );
     ''');
-
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS UserLibraryStructure (
-        FolderID TEXT PRIMARY KEY,
-        UserID TEXT NOT NULL,
-        FolderName TEXT NOT NULL,
-        Description TEXT,
-        ParentFolderID TEXT,
-        SyncStatus INTEGER DEFAULT 0,
-        FOREIGN KEY (UserID) REFERENCES User(UserID),
-        FOREIGN KEY (ParentFolderID) REFERENCES UserLibraryStructure(FolderID)
-      );
-    ''');
-
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS FolderManga (
-        FolderID TEXT,
-        MangaID TEXT,
-        SyncStatus INTEGER DEFAULT 0,
-        PRIMARY KEY (FolderID, MangaID),
-        FOREIGN KEY (FolderID) REFERENCES UserLibraryStructure(FolderID),
-        FOREIGN KEY (MangaID) REFERENCES Manga(MangaID)
-      );
-    ''');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 2) {
-      // Lógica de migración futura
-    }
+    if (oldVersion < 2) {}
   }
 
   Future<void> deleteDatabaseFile() async {
@@ -302,7 +267,6 @@ class DatabaseHelper {
   Future<int> deletePanel(String id) => delete('Panel', 'PanelID', id);
 
   Future<int> insertGenre(Map<String, dynamic> data) => insert('Genre', data);
-  Future<List<Map<String, dynamic>>> getAllGenres() => queryAll('Genre');
   Future<Map<String, dynamic>?> getGenreById(String id) =>
       queryById('Genre', 'GenreID', id);
   Future<int> updateGenre(Map<String, dynamic> data, String id) =>
@@ -324,10 +288,6 @@ class DatabaseHelper {
       update('UserProgress', data, 'UserID', id);
   Future<int> deleteUserProgress(String id) =>
       delete('UserProgress', 'UserID', id);
-
-  Future<int> insertUserNote(Map<String, dynamic> data) =>
-      insert('UserNote', data);
-  Future<List<Map<String, dynamic>>> getAllUserNotes() => queryAll('UserNote');
 
   Future<int> insertUserSettings(Map<String, dynamic> data) =>
       insert('UserSettings', data);
@@ -440,7 +400,7 @@ class DatabaseHelper {
     }
   }
 
-  Future<Manga?> getMangaByTitle(String title) async {
+  Future<MangaModel?> getMangaByTitle(String title) async {
     final db = await database;
 
     final List<Map<String, dynamic>> maps = await db.query(
@@ -450,13 +410,13 @@ class DatabaseHelper {
     );
 
     if (maps.isNotEmpty) {
-      return Manga.fromMap(maps.first);
+      return MangaModel.fromMap(maps.first);
     } else {
       return null;
     }
   }
 
-  Future<List<Manga>> getAllMangaByUserId(String userId) async {
+  Future<List<MangaModel>> getAllMangaByUserId(String userId) async {
     final db = await database;
 
     final List<Map<String, dynamic>> maps = await db.rawQuery(
@@ -474,13 +434,13 @@ class DatabaseHelper {
     return maps
         .map((map) {
           try {
-            return Manga.fromMap(map);
+            return MangaModel.fromMap(map);
           } catch (e) {
             print('❌ Error al convertir manga: $map\n$e');
             return null;
           }
         })
-        .whereType<Manga>()
+        .whereType<MangaModel>()
         .toList();
   }
 
@@ -520,5 +480,71 @@ class DatabaseHelper {
       whereArgs: [email],
     );
     return result.isNotEmpty ? result.first : null;
+  }
+
+  Future<UserNote?> getUserNote(String userId, String mangaId) async {
+    final db = await database;
+    final maps = await db.query(
+      'UserNote',
+      where: 'UserID = ? AND MangaID = ?',
+      whereArgs: [userId, mangaId],
+    );
+
+    if (maps.isNotEmpty) {
+      return UserNote.fromMap(maps.first);
+    }
+    return null;
+  }
+
+  Future<List<UserNote>> getUserNotes(String userId) async {
+    final db = await database;
+    final maps = await db.query(
+      'UserNote',
+      where: 'UserID = ?',
+      whereArgs: [userId],
+    );
+
+    return maps.map((map) => UserNote.fromMap(map)).toList();
+  }
+
+  Future<void> insertOrUpdateUserNote(UserNote note) async {
+    final db = await database;
+    await db.insert(
+      'UserNote',
+      note.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> deletePanelsByChapterId(String chapterId) async {
+    final db = await database;
+
+    await db.delete('Panel', where: 'chapterId = ?', whereArgs: [chapterId]);
+  }
+
+  Future<List<GenreModel>> getAllGenres() async {
+    final db = await database;
+    final result = await db.query('Genre');
+    return result.map((e) => GenreModel.fromMap(e)).toList();
+  }
+
+  Future<void> updateMangaGenres(String mangaId, List<String> genres) async {
+    final db = await database;
+    await db.delete('GenreManga', where: 'MangaID = ?', whereArgs: [mangaId]);
+    for (final genre in genres) {
+      await db.insert('GenreManga', {'MangaID': mangaId, 'GenreID': genre});
+    }
+  }
+
+  Future<List<String>> getGenreIdsForManga(String mangaId) async {
+    final db = await database;
+    final result = await db.rawQuery(
+      'SELECT GenreID FROM GenreManga WHERE MangaID = ?',
+      [mangaId],
+    );
+    return result
+        .map((e) => e['GenreID']?.toString()) 
+        .whereType<String>()
+        .toList();
   }
 }

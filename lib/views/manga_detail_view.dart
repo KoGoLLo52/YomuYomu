@@ -11,7 +11,7 @@ import 'package:yomuyomu/presenters/manga_presenter.dart';
 import 'package:yomuyomu/views/manga_viewer.dart';
 
 class MangaDetailView extends StatefulWidget {
-  final Manga manga;
+  final MangaModel manga;
   const MangaDetailView({super.key, required this.manga});
 
   @override
@@ -26,7 +26,7 @@ class _MangaDetailViewState extends State<MangaDetailView>
 
   bool _sortTitleAsc = true;
 
-  Manga? _currentManga;
+  MangaModel? _currentManga;
   List<Chapter> _availableChapters = [];
 
   @override
@@ -198,7 +198,7 @@ class _MangaDetailViewState extends State<MangaDetailView>
   }
 
   @override
-  void showManga(Manga manga) {
+  void showManga(MangaModel manga) {
     setState(() {
       _currentManga = manga;
     });
@@ -224,5 +224,5 @@ class _MangaDetailViewState extends State<MangaDetailView>
   void showLoading() {}
 
   @override
-  void showMangaDetails(Manga manga) {}
+  void showMangaDetails(MangaModel manga) {}
 }

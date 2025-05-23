@@ -6,7 +6,7 @@ import 'package:yomuyomu/models/panel_model.dart';
 
 class MangaDetailPresenter {
   final MangaDetailViewContract _view;
-  Manga? _manga;
+  MangaModel? _manga;
   final DatabaseHelper _databaseHelper = DatabaseHelper();
 
   MangaDetailPresenter(this._view);
@@ -18,7 +18,7 @@ class MangaDetailPresenter {
         return;
       }
 
-      final manga = Manga.fromMap(mangaData);
+      final manga = MangaModel.fromMap(mangaData);
       final chapters = await _loadChapters(mangaID);
       _manga = manga;
       manga.chapters = chapters;

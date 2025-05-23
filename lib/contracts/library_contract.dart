@@ -5,7 +5,7 @@ abstract class LibraryViewContract {
   void showLoading();
   void hideLoading();
   void showError(String message);
-  void updateMangaList(List<Manga> mangas);
+  void updateMangaList(List<MangaModel> mangas);
   void updateAuthorList(Map<String, Author> authorMap);
 }
 

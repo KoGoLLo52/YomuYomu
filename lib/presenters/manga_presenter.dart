@@ -12,7 +12,6 @@ class FileViewModel {
 
   FileViewModel(this.view);
 
-  /// Abre un archivo completo (todo el .cbz)
   Future<void> openFileFromLocation(String filePath) async {
     try {
       if (!await _databaseHelper.requestStoragePermission()) {
@@ -29,8 +28,6 @@ class FileViewModel {
       final file = File(filePath);
       final cbzHandler = CBZHandler(file);
       final chapterMap = await cbzHandler.extractChaptersInMemory();
-
-      // Cargar imágenes de todos los capítulos juntos (por ejemplo, para vista previa)
       final allImages = chapterMap.values.expand((list) => list.map((img) => img.data)).toList();
 
       if (allImages.isEmpty) {
@@ -43,10 +40,10 @@ class FileViewModel {
       final existing = await _databaseHelper.getMangaByTitle(title);
 
       if (existing == null) {
-        final newManga = Manga(
+        final newManga = MangaModel(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           title: title,
-          coverUrl: '', // Puedes guardar la imagen en memoria o generar una URI si la extraes
+          coverUrl: '',
           genres: [],
           status: MangaStatus.ongoing,
           authorId: "unknown",
@@ -65,7 +62,6 @@ class FileViewModel {
     }
   }
 
-  /// Abre un capítulo específico
   Future<void> openSpecificChapter(String filePath, String chapterId) async {
     try {
       if (!await _databaseHelper.requestStoragePermission()) {
@@ -101,7 +97,7 @@ class FileViewModel {
         return;
       }
 
-      final manga = Manga.fromMap(mangaData);
+      final manga = MangaModel.fromMap(mangaData);
       view.showMangaDetails(manga);
     } catch (e) {
       view.showError("Error loading manga details: $e");

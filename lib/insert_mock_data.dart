@@ -50,35 +50,17 @@ Future<void> insertSampleData() async {
     'BirthDate': DateTime(1980, 1, 1).millisecondsSinceEpoch,
   });
 
-  // 3. Insertar carpeta de usuario
-  final folderId = uuid.v4();
-  await db.insertUserLibraryStructure({
-    'FolderID': folderId,
-    'UserID': userId,
-    'FolderName': 'Favoritos',
-    'Description': 'Mis mangas favoritos',
-    'ParentFolderID': null,
-    'SyncStatus': 0,
-  });
-
   // 4. Insertar manga
   final mangaId = uuid.v4();
   await db.insertManga({
     'MangaID': mangaId,
     'AuthorID': authorId,
     'Title': 'Manga de Prueba',
-    'Sinopsis': 'Una historia interesante.',
+    'Synopsis': 'Una historia interesante.',
     'Rating': 4.5,
     'StartPublicationDate': DateTime(2020, 1, 1).millisecondsSinceEpoch,
     'NextPublicationDate': null,
     'Chapters': 3,
-    'SyncStatus': 0,
-  });
-
-  // 5. Relación carpeta-manga
-  await db.insertFolderManga({
-    'FolderID': folderId,
-    'MangaID': mangaId,
     'SyncStatus': 0,
   });
 
@@ -98,14 +80,52 @@ Future<void> insertSampleData() async {
   }
 
   // 7. Insertar géneros
-  const genres = ['Acción', 'Aventura'];
+  const genres = [
+    'Action',
+    'Adventure',
+    'Comedy',
+    'Drama',
+    'Ecchi',
+    'Fantasy',
+    'Horror',
+    'Isekai',
+    'Josei',
+    'Martial Arts',
+    'Mecha',
+    'Music',
+    'Mystery',
+    'Psychological',
+    'Romance',
+    'School',
+    'Sci-Fi',
+    'Seinen',
+    'Shoujo',
+    'Shoujo Ai',
+    'Shounen',
+    'Shounen Ai',
+    'Slice of Life',
+    'Sports',
+    'Supernatural',
+    'Thriller',
+    'Tragedy',
+    'Yaoi',
+    'Yuri',
+    'Historical',
+    'Dementia',
+    'Parody',
+    'Magic',
+    'Military',
+    'Demons',
+    'Gangster',
+    'Game',
+    'Survival',
+    'Martial Arts',
+    'Samurai',
+  ];
+
   for (var genre in genres) {
     final genreId = uuid.v4();
     await db.insertGenre({'GenreID': genreId, 'Description': genre});
-    await db.insertGenreManga({
-      'MangaID': mangaId,
-      'GenreID': genreId,
-    });
   }
 
   // 8. Insertar ajustes de usuario
@@ -114,18 +134,6 @@ Future<void> insertSampleData() async {
     'Language': 1,
     'Theme': 0,
     'Orientation': 0,
-    'SyncStatus': 0,
-  });
-
-  // 9. Insertar nota de usuario sobre el manga
-  await db.insertUserNote({
-    'UserID': userId,
-    'MangaID': mangaId,
-    'PersonalComment': '¡Muy buen manga!',
-    'PersonalRating': 4.8,
-    'IsFavorited': 1,
-    'IsPending': 0,
-    'LastEdited': DateTime.now().millisecondsSinceEpoch,
     'SyncStatus': 0,
   });
 

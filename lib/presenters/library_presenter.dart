@@ -15,44 +15,86 @@ class LibraryPresenter implements LibraryPresenterContract {
   final LibraryViewContract view;
   final DatabaseHelper _databaseHelper = DatabaseHelper();
 
-  List<Manga> _allMangas = [];
-  List<Manga> _filtered = [];
+  List<MangaModel> _allMangas = [];
+  List<MangaModel> _filtered = [];
 
   List<Author> _allAuthor = [];
 
   LibraryPresenter(this.view);
 
-  @override
+  
   @override
   Future<void> loadMangas() async {
     try {
       view.showLoading();
-      final prefs = await SharedPreferences.getInstance();
-
-      String? userId = prefs.getString('userId');
       final mangaData = await _databaseHelper.getAllMangas();
 
-      _allMangas =
-          mangaData.map((map) {
-            return Manga.fromMap(map);
-          }).toList();
+      _allMangas = await Future.wait(
+        mangaData.map((map) async {
+          final mangaId = map['MangaID'] as String;
+          final genres = await _databaseHelper.getGenreIdsForManga(mangaId);
+
+          final limitedGenres = genres.take(3).toList();
+
+          return MangaModel.fromMap(map, genres: limitedGenres);
+        }),
+      );
 
       _filtered = _allMangas;
 
       final authorData = await _databaseHelper.getAllAuthors();
+      _allAuthor = authorData.map((map) => Author.fromMap(map)).toList();
 
-      _allAuthor =
-          authorData.map((map) {
-            return Author.fromMap(map);
-          }).toList();
       final Map<String, Author> authorMap = {
         for (var author in _allAuthor) author.authorId: author,
       };
+
       view.updateMangaList(_allMangas);
       view.updateAuthorList(authorMap);
       view.hideLoading();
     } catch (e) {
       view.showError("Error loading manga library: $e");
+    }
+  }
+
+  Future<void> deleteManga(String mangaId) async {
+    try {
+      view.showLoading();
+      final db = DatabaseHelper.instance;
+
+      final manga = await db.getMangaById(mangaId);
+      if (manga == null) {
+        view.showError("No se encontró el manga con ID $mangaId");
+        return;
+      }
+
+      final chapters = await db.getChaptersByMangaId(mangaId);
+      for (var chapterMap in chapters) {
+        final chapterId = chapterMap['ChapterID'];
+        await db.deletePanelsByChapterId(chapterId);
+        await db.deleteChapter(chapterId);
+      }
+
+      await db.deleteManga(mangaId);
+
+      final appDir = await getApplicationDocumentsDirectory();
+      final cbzDir = Directory(join(appDir.path, 'cbz'));
+
+      final mangaFolderName = mangaId;
+      final extractedPath = Directory(join(cbzDir.path, mangaFolderName));
+      final cbzFile = File(join(cbzDir.path, '$mangaFolderName.cbz'));
+
+      if (await extractedPath.exists()) {
+        await extractedPath.delete(recursive: true);
+      }
+
+      if (await cbzFile.exists()) {
+        await cbzFile.delete();
+      }
+      await loadMangas();
+      view.hideLoading();
+    } catch (e) {
+      view.showError("Error al eliminar el manga: $e");
     }
   }
 
@@ -104,7 +146,7 @@ class LibraryPresenter implements LibraryPresenterContract {
     final existing = await db.getMangaById(mangaId);
     if (existing == null) {
       await db.insertManga(
-        Manga(
+        MangaModel(
           id: mangaId,
           title: title,
           authorId: 'unknown',
@@ -265,7 +307,9 @@ class LibraryPresenter implements LibraryPresenterContract {
 
   @override
   void sortBy(int criteria) {
-    List<Manga> sorted = [..._filtered.isNotEmpty ? _filtered : _allMangas];
+    List<MangaModel> sorted = [
+      ..._filtered.isNotEmpty ? _filtered : _allMangas,
+    ];
 
     switch (criteria) {
       case 0:

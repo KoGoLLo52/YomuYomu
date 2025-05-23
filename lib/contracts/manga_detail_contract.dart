@@ -5,6 +5,6 @@ abstract class MangaDetailViewContract {
   void showLoading();
   void hideLoading();
   void showError(String message);
-  void showManga(Manga manga);
+  void showManga(MangaModel manga);
   void showChapters(List<Chapter> chapters);
 }

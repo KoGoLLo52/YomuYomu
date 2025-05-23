@@ -26,7 +26,7 @@ class _HistoryViewState extends State<HistoryView>
   late final FileViewModel _fileViewModel;
   late final TextEditingController _searchController;
 
-  List<Manga> _mangas = [];
+  List<MangaModel> _mangas = [];
   Map<String, Author> _authors = {};
 
   @override
@@ -39,7 +39,7 @@ class _HistoryViewState extends State<HistoryView>
   }
 
   @override
-  void updateMangaList(List<Manga> updatedMangas) {
+  void updateMangaList(List<MangaModel> updatedMangas) {
     setState(() {
       _mangas = List.from(updatedMangas)
         ..sort((a, b) => b.lastReadDate?.compareTo(a.lastReadDate ?? DateTime(0)) ?? 0);
@@ -163,7 +163,7 @@ class _HistoryViewState extends State<HistoryView>
     );
   }
 
-  Widget _buildMangaCard(Manga manga) {
+  Widget _buildMangaCard(MangaModel manga) {
     final genres = manga.genres.take(3).join(" • ");
     final lastRead = manga.lastReadDate != null
         ? dateFormat.format(manga.lastReadDate!)
@@ -259,7 +259,7 @@ class _HistoryViewState extends State<HistoryView>
   @override
   void showLoading() {}
   @override
-  void showMangaDetails(Manga manga) {}
+  void showMangaDetails(MangaModel manga) {}
   @override
   void showImagesInMemory(List<Uint8List> imageData) {}
 }
