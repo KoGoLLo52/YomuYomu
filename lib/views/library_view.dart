@@ -6,7 +6,6 @@ import 'package:yomuyomu/helpers/database_helper.dart';
 import 'package:yomuyomu/models/author_model.dart';
 import 'package:yomuyomu/models/genre_model.dart';
 import 'package:yomuyomu/models/manga_model.dart';
-import 'package:yomuyomu/presenters/manga_presenter.dart';
 import 'package:yomuyomu/contracts/library_contract.dart';
 import 'package:yomuyomu/presenters/library_presenter.dart';
 import 'package:yomuyomu/views/manga_detail_view.dart';
@@ -31,7 +30,6 @@ class LibraryView extends StatefulWidget {
 class _LibraryViewState extends State<LibraryView>
     implements LibraryViewContract, FileViewContract {
   late final LibraryPresenter libraryPresenter;
-  late final FileViewModel fileViewModel;
   late final TextEditingController searchController;
 
   List<MangaModel> mangas = [];
@@ -43,7 +41,6 @@ class _LibraryViewState extends State<LibraryView>
   void initState() {
     super.initState();
     libraryPresenter = LibraryPresenter(this);
-    fileViewModel = FileViewModel(this);
     searchController = TextEditingController();
     libraryPresenter.loadMangas();
     _loadGenresAndMangas();
@@ -261,20 +258,6 @@ class _LibraryViewState extends State<LibraryView>
         );
       },
     );
-  }
-
-  Future<void> _reloadManga(MangaModel manga) async {
-    final db = DatabaseHelper.instance;
-    final data = await db.getMangaById(manga.id);
-    final updatedGenres = await db.getAllGenres();
-    if (data != null) {
-      final updatedManga = MangaModel.fromMap(data);
-      setState(() {
-        genreList = updatedGenres;
-        final index = mangas.indexWhere((m) => m.id == manga.id);
-        if (index != -1) mangas[index] = updatedManga;
-      });
-    }
   }
 
   void _openMangaDetail(MangaModel selectedManga) {

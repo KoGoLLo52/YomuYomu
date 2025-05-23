@@ -7,7 +7,6 @@ import 'package:yomuyomu/contracts/manga_detail_contract.dart';
 import 'package:yomuyomu/models/chapter_model.dart';
 import 'package:yomuyomu/models/manga_model.dart';
 import 'package:yomuyomu/presenters/manga_detail_presenter.dart';
-import 'package:yomuyomu/presenters/manga_presenter.dart';
 import 'package:yomuyomu/views/manga_viewer.dart';
 
 class MangaDetailView extends StatefulWidget {
@@ -21,7 +20,6 @@ class MangaDetailView extends StatefulWidget {
 class _MangaDetailViewState extends State<MangaDetailView>
     implements MangaDetailViewContract, FileViewContract {
   late final MangaDetailPresenter _presenter;
-  late final FileViewModel _fileViewModel;
   final TextEditingController _searchController = TextEditingController();
 
   bool _sortTitleAsc = true;
@@ -33,7 +31,6 @@ class _MangaDetailViewState extends State<MangaDetailView>
   void initState() {
     super.initState();
     _presenter = MangaDetailPresenter(this);
-    _fileViewModel = FileViewModel(this);
     _searchController.addListener(_onSearchChanged);
     _presenter.loadMangaDetail(widget.manga.id);
   }
@@ -69,8 +66,6 @@ class _MangaDetailViewState extends State<MangaDetailView>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       body:
           _currentManga == null

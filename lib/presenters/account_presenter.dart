@@ -76,7 +76,7 @@ class AccountPresenter implements AccountPresenterContract {
 
     final int finishedCount = safeNotes.where((note) => !note.isPending).length;
 
-    final String userId = userMap!['UserID'] as String;
+    final String userId = userMap['UserID'] as String;
     final int commentCount =
         comments.where((c) => c['UserID'] == userId).length;
 

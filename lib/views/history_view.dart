@@ -8,7 +8,6 @@ import 'package:yomuyomu/models/author_model.dart';
 import 'package:yomuyomu/models/manga_model.dart';
 import 'package:yomuyomu/presenters/library_presenter.dart';
 import 'package:yomuyomu/contracts/library_contract.dart';
-import 'package:yomuyomu/presenters/manga_presenter.dart';
 import 'package:yomuyomu/views/library_view.dart';
 
 final DateFormat dateFormat = DateFormat('dd/MM/yyyy');
@@ -23,7 +22,6 @@ class HistoryView extends StatefulWidget {
 class _HistoryViewState extends State<HistoryView>
     implements LibraryViewContract, FileViewContract {
   late final LibraryPresenter _libraryPresenter;
-  late final FileViewModel _fileViewModel;
   late final TextEditingController _searchController;
 
   List<MangaModel> _mangas = [];
@@ -33,7 +31,6 @@ class _HistoryViewState extends State<HistoryView>
   void initState() {
     super.initState();
     _libraryPresenter = LibraryPresenter(this);
-    _fileViewModel = FileViewModel(this);
     _searchController = TextEditingController();
     _libraryPresenter.loadMangas();
   }
