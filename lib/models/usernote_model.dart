@@ -1,10 +1,12 @@
+import 'package:yomuyomu/enums/reading_status.dart';
+
 class UserNote {
   final String userId;
   final String mangaId;
   String? personalComment;
   double? personalRating;
   bool isFavorited;
-  bool isPending;
+  ReadingStatus readingStatus;
   DateTime? lastEdited;
   int syncStatus;
 
@@ -14,7 +16,7 @@ class UserNote {
     this.personalComment,
     this.personalRating,
     this.isFavorited = false,
-    this.isPending = false,
+    this.readingStatus = ReadingStatus.toRead,
     this.lastEdited,
     this.syncStatus = 0,
   });
@@ -26,7 +28,7 @@ class UserNote {
       'PersonalComment': personalComment,
       'PersonalRating': personalRating,
       'IsFavorited': isFavorited ? 1 : 0,
-      'IsPending': isPending ? 1 : 0,
+      'ReadingStatus': readingStatus.value, 
       'LastEdited': lastEdited?.millisecondsSinceEpoch,
       'SyncStatus': syncStatus,
     };
@@ -42,7 +44,10 @@ class UserNote {
               ? (map['PersonalRating'] as num).toDouble()
               : null,
       isFavorited: map['IsFavorited'] == 1,
-      isPending: map['IsPending'] == 1,
+      readingStatus: ReadingStatus.values.firstWhere(
+        (e) => e.value == map['ReadingStatus'],
+        orElse: () => ReadingStatus.toRead,
+      ),
       lastEdited:
           map['LastEdited'] != null
               ? DateTime.fromMillisecondsSinceEpoch(map['LastEdited'])

@@ -126,7 +126,7 @@ class DatabaseHelper {
         SyncStatus INTEGER DEFAULT 0,
         PRIMARY KEY (UserID),
         FOREIGN KEY (UserID) REFERENCES User(UserID),
-        FOREIGN KEY (PanelID) REFERENCES Panel(PanelID)
+        FOREIGN KEY (PanelID) REFERENCES Panel(PanelID) 
       );
     ''');
 
@@ -137,12 +137,12 @@ class DatabaseHelper {
         PersonalComment TEXT,
         PersonalRating REAL,
         IsFavorited INTEGER DEFAULT 0,
-        IsPending INTEGER DEFAULT 0,
+        ReadingStatus INTEGER DEFAULT 0,
         LastEdited INTEGER,
         SyncStatus INTEGER DEFAULT 0,
         PRIMARY KEY (UserID, MangaID),
-        FOREIGN KEY (UserID) REFERENCES User(UserID),
-        FOREIGN KEY (MangaID) REFERENCES Manga(MangaID)
+        FOREIGN KEY (UserID) REFERENCES User(UserID) ON DELETE CASCADE,
+        FOREIGN KEY (MangaID) REFERENCES Manga(MangaID) ON DELETE CASCADE
       );
     ''');
 
@@ -300,24 +300,6 @@ class DatabaseHelper {
   Future<int> deleteUserSettings(String id) =>
       delete('UserSettings', 'UserID', id);
 
-  Future<int> insertUserLibraryStructure(Map<String, dynamic> data) =>
-      insert('UserLibraryStructure', data);
-  Future<List<Map<String, dynamic>>> getAllUserLibraryStructures() =>
-      queryAll('UserLibraryStructure');
-  Future<Map<String, dynamic>?> getUserLibraryStructureById(String id) =>
-      queryById('UserLibraryStructure', 'FolderID', id);
-  Future<int> updateUserLibraryStructure(
-    Map<String, dynamic> data,
-    String id,
-  ) => update('UserLibraryStructure', data, 'FolderID', id);
-  Future<int> deleteUserLibraryStructure(String id) =>
-      delete('UserLibraryStructure', 'FolderID', id);
-
-  Future<int> insertFolderManga(Map<String, dynamic> data) =>
-      insert('FolderManga', data);
-  Future<List<Map<String, dynamic>>> getAllFolderManga() =>
-      queryAll('FolderManga');
-
   Future<List<Map<String, dynamic>>> getChaptersByMangaId(
     String mangaId,
   ) async {
@@ -379,16 +361,6 @@ class DatabaseHelper {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getUserLibrary(String userId) async {
-    final db = await database;
-    return await db.query(
-      'UserLibraryStructure',
-      where: 'UserID = ?',
-      whereArgs: [userId],
-      orderBy: 'FolderName ASC',
-    );
-  }
-
   Future<bool> requestStoragePermission() async {
     final status = await Permission.storage.request();
 
@@ -414,34 +386,6 @@ class DatabaseHelper {
     } else {
       return null;
     }
-  }
-
-  Future<List<MangaModel>> getAllMangaByUserId(String userId) async {
-    final db = await database;
-
-    final List<Map<String, dynamic>> maps = await db.rawQuery(
-      '''
-    SELECT M.*
-    FROM Manga M
-    INNER JOIN FolderManga FM ON M.MangaID = FM.MangaID
-    INNER JOIN UserLibraryStructure ULS ON FM.FolderID = ULS.FolderID
-    WHERE ULS.UserID = ?
-    ORDER BY M.Title COLLATE NOCASE ASC;
-  ''',
-      [userId],
-    );
-
-    return maps
-        .map((map) {
-          try {
-            return MangaModel.fromMap(map);
-          } catch (e) {
-            print('❌ Error al convertir manga: $map\n$e');
-            return null;
-          }
-        })
-        .whereType<MangaModel>()
-        .toList();
   }
 
   Future<Map<String, dynamic>?> getLastReadPanelForManga({
@@ -543,8 +487,99 @@ class DatabaseHelper {
       [mangaId],
     );
     return result
-        .map((e) => e['GenreID']?.toString()) 
+        .map((e) => e['GenreID']?.toString())
         .whereType<String>()
         .toList();
+  }
+
+  Future<int> updateMangaStatus({
+    required String userId,
+    required String mangaId,
+    required int readingStatus,
+  }) async {
+    final db = await database;
+
+    return await db.update(
+      'UserNote',
+      {
+        'ReadingStatus': readingStatus,
+        'LastEdited': DateTime.now().millisecondsSinceEpoch,
+      },
+      where: 'UserID = ? AND MangaID = ?',
+      whereArgs: [userId, mangaId],
+    );
+  }
+
+  Future<UserNote?> getUserNoteForManga(String userId, String mangaId) async {
+    final db = await database;
+
+    final result = await db.query(
+      'UserNote',
+      where: 'UserID = ? AND MangaID = ?',
+      whereArgs: [userId, mangaId],
+    );
+
+    if (result.isNotEmpty) {
+      return UserNote.fromMap(result.first);
+    }
+
+    return null;
+  }
+
+  Future<void> migrateUserData(String oldUserId, String newUserId) async {
+    final db = await database;
+
+    final oldUser = await db.query(
+      'User',
+      where: 'UserID = ?',
+      whereArgs: [oldUserId],
+    );
+
+    if (oldUser.isNotEmpty) {
+      final newUser = Map<String, dynamic>.from(oldUser.first);
+      newUser['UserID'] = newUserId;
+
+      // Comprobar si newUserId ya existe
+      final existingNewUser = await db.query(
+        'User',
+        where: 'UserID = ?',
+        whereArgs: [newUserId],
+      );
+
+      if (existingNewUser.isEmpty) {
+        await db.insert('User', newUser);
+      } else {
+        print(
+          'El usuario con ID $newUserId ya existe. No se insertó nuevamente.',
+        );
+      }
+    }
+
+    final tablesToUpdate = [
+      'Manga',
+      'UserProgress',
+      'UserNote',
+      'UserSettings',
+    ];
+
+    for (final table in tablesToUpdate) {
+      await db.update(
+        table,
+        {'UserID': newUserId},
+        where: 'UserID = ?',
+        whereArgs: [oldUserId],
+      );
+    }
+
+    await db.delete('User', where: 'UserID = ?', whereArgs: [oldUserId]);
+  }
+
+  Future<String?> getSingleUserID() async {
+    final db = await database;
+    final result = await db.query('User', columns: ['UserID'], limit: 1);
+    if (result.isNotEmpty) {
+      return result.first['UserID'] as String;
+    }
+    return null;
   }
 }

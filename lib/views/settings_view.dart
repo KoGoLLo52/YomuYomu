@@ -1,134 +1,94 @@
 import 'package:flutter/material.dart';
-import 'package:yomuyomu/contracts/settings_contract.dart';
+import 'package:provider/provider.dart';
 import 'package:yomuyomu/presenters/settings_presenter.dart';
 
-class SettingsView extends StatefulWidget {
+class SettingsView extends StatelessWidget {
   const SettingsView({super.key});
-
-  @override
-  State<SettingsView> createState() => _SettingsViewState();
-}
-
-class _SettingsViewState extends State<SettingsView> implements SettingsViewContract {
-  late SettingsPresenter _presenter;
-
-  ThemeMode _selectedTheme = ThemeMode.system;
-  String _selectedLanguage = 'English';
-  Axis _readerOrientation = Axis.vertical;
-
-  bool _loading = true;
-
-  late List<String> _availableLanguages;
-
-  @override
-  void initState() {
-    super.initState();
-    _presenter = SettingsPresenter(this);
-    _availableLanguages = _presenter.getAvailableLanguages();
-    _loadSettings();
-  }
-
-  Future<void> _loadSettings() async {
-  setState(() {
-    _loading = true;
-  });
-
-  try {
-    final settings = await _presenter.loadUserSettings();
-
-    setState(() {
-      _selectedTheme = _mapThemeFromInt(settings.theme);
-      _selectedLanguage = _mapLanguageFromInt(settings.language);
-      _readerOrientation = _mapOrientationFromInt(settings.orientation);
-      _loading = false;
-    });
-  } catch (e) {
-    setState(() {
-      _loading = false;
-    });
-    showError('Error loading settings: $e');
-  }
-}
-
+  
   @override
   Widget build(BuildContext context) {
+    final presenter = context.watch<SettingsPresenter>();
+    final settings = presenter.settings;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
-      body: _loading
+      body: settings == null
           ? const Center(child: CircularProgressIndicator())
           : Padding(
               padding: const EdgeInsets.all(16),
               child: ListView(
                 children: [
-                  _buildThemeSection(),
+                  _buildThemeSection(context, presenter),
                   const SizedBox(height: 20),
-                  _buildLanguageSection(),
+                  _buildLanguageSection(context, presenter),
                   const SizedBox(height: 20),
-                  _buildOrientationSection(),
+                  _buildOrientationSection(context, presenter),
                 ],
               ),
             ),
     );
   }
 
-  Widget _buildThemeSection() {
+  Widget _buildThemeSection(BuildContext context, SettingsPresenter presenter) {
+    final currentTheme = _mapThemeFromInt(presenter.settings!.theme);
     return _buildSection(
       title: 'Theme',
       child: Wrap(
         spacing: 8,
         children: [
-          _buildThemeButton(ThemeMode.system, 'System'),
-          _buildThemeButton(ThemeMode.light, 'Light'),
-          _buildThemeButton(ThemeMode.dark, 'Dark'),
+          _buildThemeButton(presenter, ThemeMode.system, 'System', currentTheme),
+          _buildThemeButton(presenter, ThemeMode.light, 'Light', currentTheme),
+          _buildThemeButton(presenter, ThemeMode.dark, 'Dark', currentTheme),
         ],
       ),
     );
   }
 
-  Widget _buildLanguageSection() {
+  Widget _buildLanguageSection(BuildContext context, SettingsPresenter presenter) {
+    const availableLanguages = ['English', 'Español', '日本語'];
+    final currentLang = availableLanguages[presenter.settings!.language];
+
     return _buildSection(
       title: 'Language',
       child: DropdownButton<String>(
-        value: _selectedLanguage,
+        value: currentLang,
         onChanged: (value) {
-          if (value != null) _presenter.onLanguageChanged(value);
+          if (value != null) {
+            final index = availableLanguages.indexOf(value);
+            if (index != -1) {
+              presenter.changeLanguage(index);
+            }
+          }
         },
-        items: _availableLanguages
+        items: availableLanguages
             .map((lang) => DropdownMenuItem(value: lang, child: Text(lang)))
             .toList(),
       ),
     );
   }
 
-  Widget _buildOrientationSection() {
+  Widget _buildOrientationSection(BuildContext context, SettingsPresenter presenter) {
+    final current = _mapOrientationFromInt(presenter.settings!.orientation);
+
     return _buildSection(
       title: 'Reader Orientation',
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildOrientationButton(Axis.vertical, Icons.swap_vert, 'Vertical'),
-          _buildOrientationButton(Axis.horizontal, Icons.swap_horiz, 'Horizontal'),
+          _buildOrientationButton(presenter, Axis.vertical, Icons.swap_vert, 'Vertical', current),
+          _buildOrientationButton(presenter, Axis.horizontal, Icons.swap_horiz, 'Horizontal', current),
         ],
       ),
     );
   }
 
-  Widget _buildSection({required String title, required Widget child}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        child,
-      ],
-    );
-  }
+  Widget _buildThemeButton(SettingsPresenter presenter, ThemeMode mode, String label, ThemeMode current) {
+    final isSelected = current == mode;
 
-  Widget _buildThemeButton(ThemeMode mode, String label) {
-    final isSelected = _selectedTheme == mode;
     return ElevatedButton(
-      onPressed: () => _presenter.onThemeChanged(mode),
+      onPressed: () {
+        presenter.changeTheme(_mapThemeToInt(mode));
+      },
       style: ElevatedButton.styleFrom(
         backgroundColor: isSelected ? Colors.blue : Colors.grey[300],
         foregroundColor: isSelected ? Colors.white : Colors.black,
@@ -137,10 +97,13 @@ class _SettingsViewState extends State<SettingsView> implements SettingsViewCont
     );
   }
 
-  Widget _buildOrientationButton(Axis orientation, IconData icon, String label) {
-    final isSelected = _readerOrientation == orientation;
+  Widget _buildOrientationButton(SettingsPresenter presenter, Axis axis, IconData icon, String label, Axis current) {
+    final isSelected = current == axis;
+
     return GestureDetector(
-      onTap: () => _presenter.onReaderOrientationChanged(orientation),
+      onTap: () {
+        presenter.changeOrientation(_mapOrientationToInt(axis));
+      },
       child: Column(
         children: [
           Container(
@@ -158,49 +121,17 @@ class _SettingsViewState extends State<SettingsView> implements SettingsViewCont
     );
   }
 
-  // View contract updates
-  @override
-  void updateTheme(ThemeMode mode) {
-    setState(() {
-      _selectedTheme = mode;
-    });
+  Widget _buildSection({required String title, required Widget child}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        child,
+      ],
+    );
   }
 
-  @override
-  void updateLanguage(String language) {
-    setState(() {
-      _selectedLanguage = language;
-    });
-  }
-
-  @override
-  void updateReaderOrientation(Axis orientation) {
-    setState(() {
-      _readerOrientation = orientation;
-    });
-  }
-
-  @override
-  void showLoading() {
-    setState(() {
-      _loading = true;
-    });
-  }
-
-  @override
-  void hideLoading() {
-    setState(() {
-      _loading = false;
-    });
-  }
-
-  @override
-  void showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-    print(message);
-  }
-
-  // Helpers to map DB values to enum/display
   ThemeMode _mapThemeFromInt(int value) {
     switch (value) {
       case 1:
@@ -212,11 +143,22 @@ class _SettingsViewState extends State<SettingsView> implements SettingsViewCont
     }
   }
 
+  int _mapThemeToInt(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.light:
+        return 1;
+      case ThemeMode.dark:
+        return 2;
+      default:
+        return 0;
+    }
+  }
+
   Axis _mapOrientationFromInt(int value) {
     return value == 1 ? Axis.horizontal : Axis.vertical;
   }
 
-  String _mapLanguageFromInt(int value) {
-    return _availableLanguages.elementAt(value.clamp(0, _availableLanguages.length - 1));
+  int _mapOrientationToInt(Axis axis) {
+    return axis == Axis.horizontal ? 1 : 0;
   }
 }

@@ -1,4 +1,6 @@
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomuyomu/contracts/account_contract.dart';
+import 'package:yomuyomu/enums/reading_status.dart';
 import 'package:yomuyomu/helpers/database_helper.dart';
 import 'package:yomuyomu/models/account_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -36,16 +38,22 @@ class AccountPresenter implements AccountPresenterContract {
     final email = currentUser.email;
     if (email == null || !_isValidEmail(email)) return null;
 
+    final prefs = await SharedPreferences.getInstance();
+    final oldID = prefs.getString('old_user_id');
+
     var userMap = await _databaseHelper.getUserByEmail(email);
 
-    // Si no existe, lo guardamos nuevo
     if (userMap == null) {
+      if (oldID != null && oldID != currentUser.uid) {
+        await _databaseHelper.migrateUserData(oldID, currentUser.uid);
+      }
+
       await saveUserToDatabase(currentUser.displayName ?? 'Usuario', email);
       userMap = await _databaseHelper.getUserByEmail(email);
       if (userMap == null) return null;
     } else {
       final updatedUser = AccountModel(
-        userID: userMap['UserID'],
+        userID: currentUser.uid,
         username: currentUser.displayName ?? userMap['Username'],
         email: email,
         icon: userMap['Icon'] ?? 'default_user_pfp.png',
@@ -62,23 +70,23 @@ class AccountPresenter implements AccountPresenterContract {
       userMap = updatedUser.toMap();
     }
 
+    await prefs.setString('old_user_id', currentUser.uid);
+
     final comments = await _databaseHelper.getAllComments();
-    final List<UserNote> notes = await _databaseHelper.getUserNotes(currentUser.uid,);
+    final List<UserNote> notes = await _databaseHelper.getUserNotes(currentUser.uid);
 
     final List<UserNote> safeNotes = notes;
 
-    final List<Uri> favoritedCovers =
-        safeNotes
-            .where((note) => note.isFavorited)
-            .take(5)
-            .map((note) => Uri.parse(note.mangaId))
-            .toList();
+    final List<Uri> favoritedCovers = safeNotes
+        .where((note) => note.isFavorited)
+        .take(5)
+        .map((note) => Uri.parse(note.mangaId))
+        .toList();
 
-    final int finishedCount = safeNotes.where((note) => !note.isPending).length;
+    final int finishedCount = safeNotes.where((note) => note.readingStatus == ReadingStatus.completed).length;
 
     final String userId = userMap['UserID'] as String;
-    final int commentCount =
-        comments.where((c) => c['UserID'] == userId).length;
+    final int commentCount = comments.where((c) => c['UserID'] == userId).length;
 
     return AccountModel.fromMap({
       ...userMap,

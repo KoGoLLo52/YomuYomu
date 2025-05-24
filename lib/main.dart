@@ -1,6 +1,7 @@
 import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -12,33 +13,35 @@ import 'package:yomuyomu/views/account_view.dart';
 import 'package:yomuyomu/views/history_view.dart';
 import 'package:yomuyomu/views/library_view.dart';
 import 'package:yomuyomu/views/settings_view.dart';
+import 'package:yomuyomu/presenters/settings_presenter.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  print('Inicializando SharedPreferences');
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  final preferences = await SharedPreferences.getInstance();
-  final themePreference = preferences.getString('theme_mode') ?? 'system';
-  final languagePreference = preferences.getString('language') ?? 'en';
-  final readerOrientation =
-      preferences.getString('reader_orientation') ?? 'vertical';
-
-  userDirectionPreference.value =
-      readerOrientation == 'horizontal' ? Axis.horizontal : Axis.vertical;
-
-  print('Idioma preferido: $languagePreference');
-
-  appThemeMode.value = _getThemeFromPreference(themePreference);
+  try {
+    print('🔄 Inicializando Firebase...');
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print('✅ Firebase inicializado correctamente.');
+  } catch (e, st) {
+    print('❌ Error al inicializar Firebase: $e');
+    print(st);
+    return;
+  }
 
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-    print('Inicializando sqflite_common_ffi para escritorio');
-    sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
-  } else {
-    print('No se usa sqflite_common_ffi en esta plataforma');
+    try {
+      print('🖥️ Inicializando sqflite_common_ffi para escritorio...');
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+      print('✅ sqflite_common_ffi inicializado.');
+    } catch (e, st) {
+      print('❌ Error al inicializar sqflite_common_ffi: $e');
+      print(st);
+    }
   }
 
   try {
@@ -46,31 +49,25 @@ Future<void> main() async {
     // await DatabaseHelper.instance.deleteDatabaseFile();
     // print('Base de datos borrada');
 
-    // print('Insertando datos de muestra');
-    // await insertSampleData();
-    // print('Datos de muestra insertados');
+    print('📝 Insertando datos de muestra...');
+    await insertSampleData();
+    print('✅ Datos de muestra insertados.');
 
-    print('Abriendo base de datos');
+    print('📂 Abriendo base de datos...');
     await DatabaseHelper.instance.database;
-    print('Base de datos abierta');
+    print('✅ Base de datos abierta.');
   } catch (e, st) {
-    print('Error durante inicialización de base de datos: $e');
+    print('❌ Error durante la inicialización de base de datos: $e');
     print(st);
   }
 
-  print('Ejecutando la app');
-  runApp(const AppRoot());
-}
-
-ThemeMode _getThemeFromPreference(String preference) {
-  switch (preference) {
-    case 'light':
-      return ThemeMode.light;
-    case 'dark':
-      return ThemeMode.dark;
-    default:
-      return ThemeMode.system;
-  }
+  print('🚀 Ejecutando la aplicación...');
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => SettingsPresenter(),
+      child: const AppRoot(),
+    ),
+  );
 }
 
 Future<void> updateThemePreference(ThemeMode mode) async {
@@ -95,9 +92,18 @@ class AppRoot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemeMode>(
-      valueListenable: appThemeMode,
-      builder: (context, themeMode, _) {
+    return Consumer<SettingsPresenter>(
+      builder: (context, presenter, _) {
+        final settings = presenter.settings;
+
+        if (settings == null) {
+          return const MaterialApp(
+            home: Scaffold(body: Center(child: CircularProgressIndicator())),
+          );
+        }
+
+        final themeMode = _mapThemeFromInt(settings.theme);
+
         return MaterialApp(
           title: 'Manga Reader',
           theme: ThemeData.light(),
@@ -107,6 +113,17 @@ class AppRoot extends StatelessWidget {
         );
       },
     );
+  }
+
+  ThemeMode _mapThemeFromInt(int value) {
+    switch (value) {
+      case 1:
+        return ThemeMode.light;
+      case 2:
+        return ThemeMode.dark;
+      default:
+        return ThemeMode.system;
+    }
   }
 }
 

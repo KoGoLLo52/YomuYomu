@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
-import 'package:yomuyomu/config/global_genres.dart';
 import 'package:yomuyomu/contracts/manga_contract.dart';
 import 'package:yomuyomu/models/author_model.dart';
 import 'package:yomuyomu/models/manga_model.dart';
@@ -67,10 +66,7 @@ class _HistoryViewState extends State<HistoryView>
   }
 
   void _showGenreFilterDialog() {
-    showDialog(
-      context: context,
-      builder: (_) => _buildGenreFilterDialog(),
-    );
+    
   }
 
   void _showSortDialog() {
@@ -100,65 +96,14 @@ class _HistoryViewState extends State<HistoryView>
         title: const Text("Filter By Status"),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: MangaStatus.values.map((status) {
-            return CheckboxListTile(
-              title: Text(status.name),
-              value: filterStatus[status],
-              onChanged: (value) {
-                setState(() => filterStatus[status] = value!);
-              },
-            );
-          }).toList(),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-          TextButton(
-            onPressed: () {
-              final selected = filterStatus.entries.where((e) => e.value).map((e) => e.key).toList();
-              selected.isEmpty ? _libraryPresenter.showAll() : _libraryPresenter.filterByStatus(selected);
-              Navigator.pop(context);
-            },
-            child: const Text("Apply"),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildGenreFilterDialog() {
-    return StatefulBuilder(
-      builder: (context, setState) => AlertDialog(
-        title: const Text("Filter by Genre"),
-        content: Wrap(
-          spacing: 8.0,
-          runSpacing: 8.0,
-          children: genreFilterStatus.entries.map((entry) {
-            return FilterChip(
-              label: Text(entry.key),
-              selected: entry.value,
-              onSelected: (value) => setState(() => genreFilterStatus[entry.key] = value),
-            );
-          }).toList(),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-          TextButton(
-            onPressed: () {
-              final selectedGenres = genreFilterStatus.entries
-                  .where((e) => e.value)
-                  .map((e) => e.key)
-                  .toList();
-              selectedGenres.isEmpty
-                  ? _libraryPresenter.showAll()
-                  : _libraryPresenter.filterByGenres(selectedGenres);
-              Navigator.pop(context);
-            },
-            child: const Text("Apply"),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildMangaCard(MangaModel manga) {
     final genres = manga.genres.take(3).join(" • ");

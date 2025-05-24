@@ -1,3 +1,4 @@
+import 'package:yomuyomu/enums/reading_status.dart';
 import 'package:yomuyomu/models/author_model.dart';
 import 'package:yomuyomu/models/manga_model.dart';
 
@@ -11,7 +12,7 @@ abstract class LibraryViewContract {
 
 abstract class LibraryPresenterContract {
   void loadMangas();
-  void filterByStatus(List<MangaStatus> status);
+  void filterByStatus(List<ReadingStatus> status);
   void filterByGenres(List<String> genres);
   void sortBy(int criteria);
 }
