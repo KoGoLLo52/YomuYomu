@@ -214,6 +214,7 @@ class _LibraryViewState extends State<LibraryView>
                 Flexible(
                   child: Container(
                     color: Theme.of(context).scaffoldBackgroundColor,
+                    height: 350,
                     child: TabBarView(
                       children: [
                         NotesTab(manga: manga),
