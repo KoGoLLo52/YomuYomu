@@ -36,6 +36,7 @@ class _AccountViewState extends State<AccountView>
     });
   }
 
+  @override
   void updateAccount(AccountModel account) {
     if (!mounted) return;
     setState(() {
@@ -171,8 +172,9 @@ class _AccountViewState extends State<AccountView>
                                     foregroundColor: Colors.white,
                                   ),
                                   onPressed: () async {
-                                    if (!loginFormKey.currentState!.validate())
+                                    if (!loginFormKey.currentState!.validate()) {
                                       return;
+                                    }
 
                                     final email =
                                         loginEmailController.text.trim();
@@ -277,8 +279,9 @@ class _AccountViewState extends State<AccountView>
                                   ),
                                   onPressed: () async {
                                     if (!registerFormKey.currentState!
-                                        .validate())
+                                        .validate()) {
                                       return;
+                                    }
 
                                     final username =
                                         registerUsernameController.text.trim();

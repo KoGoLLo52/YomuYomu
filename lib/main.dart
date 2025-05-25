@@ -45,9 +45,9 @@ Future<void> main() async {
   }
 
   try {
-    // print('Borrando base de datos (si existe)');
-    // await DatabaseHelper.instance.deleteDatabaseFile();
-    // print('Base de datos borrada');
+    print('Borrando base de datos (si existe)');
+    await DatabaseHelper.instance.deleteDatabaseFile();
+    print('Base de datos borrada');
 
     print('📝 Insertando datos de muestra...');
     await insertSampleData();

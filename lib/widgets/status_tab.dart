@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:yomuyomu/enums/reading_status.dart';
 import 'package:yomuyomu/helpers/database_helper.dart';
 import 'package:yomuyomu/models/manga_model.dart';
-import 'package:yomuyomu/widgets/note_tab.dart';
 
 class StatusTab extends StatefulWidget {
   final MangaModel manga;

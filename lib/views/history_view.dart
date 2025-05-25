@@ -7,7 +7,6 @@ import 'package:yomuyomu/models/author_model.dart';
 import 'package:yomuyomu/models/manga_model.dart';
 import 'package:yomuyomu/presenters/library_presenter.dart';
 import 'package:yomuyomu/contracts/library_contract.dart';
-import 'package:yomuyomu/views/library_view.dart';
 
 final DateFormat dateFormat = DateFormat('dd/MM/yyyy');
 

@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:uuid/uuid.dart';
-import 'package:yomuyomu/config/global_settings.dart';
 import 'package:yomuyomu/helpers/database_helper.dart';
 
 Future<void> insertSampleData() async {

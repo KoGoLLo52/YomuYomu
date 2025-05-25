@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:path/path.dart';
 import 'package:archive/archive_io.dart';
 import 'package:file_picker/file_picker.dart';
@@ -17,7 +16,7 @@ import 'package:yomuyomu/models/usernote_model.dart';
 class LibraryPresenter implements LibraryPresenterContract {
   final LibraryViewContract view;
   final DatabaseHelper _db = DatabaseHelper.instance;
-  final String? _userId;
+  String? _userId;
 
   List<MangaModel> _allMangas = [];
   List<MangaModel> _filtered = [];
@@ -186,7 +185,7 @@ class LibraryPresenter implements LibraryPresenterContract {
     int? volume;
     DateTime? publicationDate;
     List<String> genres = [];
-
+    _userId = await _getCurrentUserId();
     final regex = RegExp(
       r'^(.*?)\s+v(\d+)\s+\((\d{4})\)\s+\((.*?)\)\s+\((.*?)\)\.cbz$',
       caseSensitive: false,
@@ -210,6 +209,7 @@ class LibraryPresenter implements LibraryPresenterContract {
         id: mangaId,
         title: title,
         authorId: 'unknown',
+        userId: _userId!,
         genres: genres,
         synopsis: 'Descripción no disponible.',
         rating: 0.0,
@@ -368,14 +368,12 @@ class LibraryPresenter implements LibraryPresenterContract {
   }
 
   Future<String> _getCurrentUserId() async {
-    if (_userId != null) return _userId;
+    final localUserId = await _db.getSingleUserID();
 
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      return user?.uid ?? 'local';
-    } catch (e) {
-      print('Error obteniendo el usuario: $e');
-      return 'local';
+    if (localUserId != null) {
+      return localUserId;
+    } else {
+      throw Exception("❌ No se encontró un userId en la base de datos local.");
     }
   }
 }

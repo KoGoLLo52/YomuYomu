@@ -5,6 +5,7 @@ class MangaModel {
   final String id;
   String title;
   String authorId;
+  String userId;
   String? synopsis;
   double rating;
   DateTime startPublicationDate;
@@ -25,6 +26,7 @@ class MangaModel {
     required this.title,
     required this.authorId,
     this.synopsis,
+    required this.userId,
     this.rating = 0.0,
     required this.startPublicationDate,
     this.nextPublicationDate,
@@ -54,6 +56,7 @@ class MangaModel {
   Map<String, dynamic> toMap() => {
     'MangaID': id,
     'AuthorID': authorId,
+    'UserID': userId,
     'Title': title,
     'Synopsis': synopsis,
     'Rating': rating,
@@ -75,6 +78,7 @@ class MangaModel {
       authorId: map['AuthorID'],
       title: map['Title'] ?? '',
       synopsis: map['Synopsis'],
+      userId: map['UserID'],
       rating:
           rating ??
           (map['Rating'] != null ? (map['Rating'] as num).toDouble() : 0),
