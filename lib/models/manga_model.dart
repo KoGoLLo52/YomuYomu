@@ -14,7 +14,6 @@ class MangaModel {
   List<String> genres;
   ReadingStatus status;
   int totalChaptersAmount;
-  int chapterProgress;
   int lastChapterRead;
   bool isFavorited;
   String? coverUrl;
@@ -34,7 +33,6 @@ class MangaModel {
     List<String>? genres,
     this.status = ReadingStatus.toRead,
     required this.totalChaptersAmount,
-    this.chapterProgress = 0,
     this.lastChapterRead = 0,
     this.isFavorited = false,
     this.coverUrl,
@@ -69,6 +67,8 @@ class MangaModel {
   factory MangaModel.fromMap(
     Map<String, dynamic> map, {
     List<String> genres = const [],
+    DateTime? lastReadDate,
+    int? lastChapterRead,
     ReadingStatus? status,
     bool? isFavorited,
     double? rating,
@@ -99,6 +99,18 @@ class MangaModel {
               ? ReadingStatusExtension.fromValue(map['ReadingStatus'] as int)
               : ReadingStatus.toRead),
       isFavorited: isFavorited ?? (map['IsFavorited'] == 1),
+      lastChapterRead: lastChapterRead ?? 0,
+      lastReadDate:
+          map['LastReadDate'] != null
+              ? DateTime.fromMillisecondsSinceEpoch(map['LastReadDate'] as int)
+              : null,
     );
   }
+}
+
+class LastReadChapter {
+  final int chapterNumber;
+  final int lastReadDate;
+
+  LastReadChapter({required this.chapterNumber, required this.lastReadDate});
 }

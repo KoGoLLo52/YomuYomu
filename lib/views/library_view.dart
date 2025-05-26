@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:yomuyomu/contracts/manga_contract.dart';
 import 'package:yomuyomu/enums/reading_status.dart';
 import 'package:yomuyomu/helpers/database_helper.dart';
 import 'package:yomuyomu/models/author_model.dart';
@@ -27,7 +26,7 @@ class LibraryView extends StatefulWidget {
 }
 
 class _LibraryViewState extends State<LibraryView>
-    implements LibraryViewContract, FileViewContract {
+    implements LibraryViewContract {
   late final LibraryPresenter libraryPresenter;
   late final TextEditingController searchController;
 
@@ -381,7 +380,7 @@ class _LibraryViewState extends State<LibraryView>
                         const SizedBox(width: 16),
                         const Icon(Icons.auto_stories, size: 16),
                         const SizedBox(width: 4),
-                        Text("Pg: ${manga.chapterProgress}"),
+                        Text("Pg: ${manga.lastChapterRead}"),
                       ],
                     ),
                   ],

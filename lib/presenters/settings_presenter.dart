@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:yomuyomu/config/global_settings.dart';
 import 'package:yomuyomu/helpers/database_helper.dart';
+import 'package:yomuyomu/helpers/user_session_helper.dart';
 import 'package:yomuyomu/models/settings_model.dart';
 
 class SettingsPresenter extends ChangeNotifier {
@@ -16,19 +17,9 @@ class SettingsPresenter extends ChangeNotifier {
   String? _error;
   String? get error => _error;
 
-  Future<String> _getUserId() async {
-    final localUserId = await _dbHelper.getSingleUserID();
-
-    if (localUserId != null) {
-      return localUserId;
-    } else {
-      throw Exception("❌ No se encontró un userId en la base de datos local.");
-    }
-  }
-
   Future<void> loadSettings() async {
     try {
-      final userId = await _getUserId();
+      final userId = await UserSession.getUserId();
       final settingsMap = await _dbHelper.getUserSettingsById(userId);
 
       if (settingsMap != null) {

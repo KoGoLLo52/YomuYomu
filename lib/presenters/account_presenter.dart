@@ -1,14 +1,15 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yomuyomu/contracts/account_contract.dart';
 import 'package:yomuyomu/enums/reading_status.dart';
 import 'package:yomuyomu/helpers/database_helper.dart';
+import 'package:yomuyomu/helpers/user_session_helper.dart';
 import 'package:yomuyomu/models/account_model.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:yomuyomu/models/usernote_model.dart';
+import 'package:yomuyomu/models/usernote_model.dart'; 
 
 class AccountPresenter implements AccountPresenterContract {
   final AccountViewContract _view;
-  final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final DatabaseHelper _db = DatabaseHelper();
 
   AccountPresenter(this._view);
 
@@ -32,29 +33,37 @@ class AccountPresenter implements AccountPresenterContract {
   }
 
   Future<AccountModel?> _getUserAccount() async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return null;
+    final userId = await UserSession.getUserId();
 
-    final email = currentUser.email;
+    if (userId.isEmpty) return null;
+
+    // Aquí la parte del email depende de Firebase, para eso podrías agregar otro método en UserSession
+    // que te devuelva el email si hay sesión Firebase o null si no
+    // Para este ejemplo, asumiremos que lo obtienes igual con FirebaseAuth, 
+    // pero puedes hacerlo más robusto luego
+
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final email = currentUser?.email;
+
     if (email == null || !_isValidEmail(email)) return null;
 
     final prefs = await SharedPreferences.getInstance();
     final oldID = prefs.getString('old_user_id');
 
-    var userMap = await _databaseHelper.getUserByEmail(email);
+    var userMap = await _db.getUserByEmail(email);
 
     if (userMap == null) {
-      if (oldID != null && oldID != currentUser.uid) {
-        await _databaseHelper.migrateUserData(oldID, currentUser.uid);
+      if (oldID != null && oldID != userId) {
+        await _db.migrateUserData(oldID, userId);
       }
 
-      await saveUserToDatabase(currentUser.displayName ?? 'Usuario', email);
-      userMap = await _databaseHelper.getUserByEmail(email);
+      await saveUserToDatabase(currentUser?.displayName ?? 'Usuario', email);
+      userMap = await _db.getUserByEmail(email);
       if (userMap == null) return null;
     } else {
       final updatedUser = AccountModel(
-        userID: currentUser.uid,
-        username: currentUser.displayName ?? userMap['Username'],
+        userID: userId,
+        username: currentUser?.displayName ?? userMap['Username'],
         email: email,
         icon: userMap['Icon'] ?? 'default_user_pfp.png',
         creationDate: DateTime(userMap['CreationDate']),
@@ -66,14 +75,14 @@ class AccountPresenter implements AccountPresenterContract {
         commentsPosted: 0,
       );
 
-      await _databaseHelper.updateUser(updatedUser.toMap(), updatedUser.userID);
+      await _db.updateUser(updatedUser.toMap(), updatedUser.userID);
       userMap = updatedUser.toMap();
     }
 
-    await prefs.setString('old_user_id', currentUser.uid);
+    await prefs.setString('old_user_id', userId);
 
-    final comments = await _databaseHelper.getAllComments();
-    final List<UserNote> notes = await _databaseHelper.getUserNotes(currentUser.uid);
+    final comments = await _db.getAllComments();
+    final List<UserNote> notes = await _db.getUserNotes(userId);
 
     final List<UserNote> safeNotes = notes;
 
@@ -85,8 +94,8 @@ class AccountPresenter implements AccountPresenterContract {
 
     final int finishedCount = safeNotes.where((note) => note.readingStatus == ReadingStatus.completed).length;
 
-    final String userId = userMap['UserID'] as String;
-    final int commentCount = comments.where((c) => c['UserID'] == userId).length;
+    final String userIdFromMap = userMap['UserID'] as String;
+    final int commentCount = comments.where((c) => c['UserID'] == userIdFromMap).length;
 
     return AccountModel.fromMap({
       ...userMap,
@@ -100,11 +109,11 @@ class AccountPresenter implements AccountPresenterContract {
 
   @override
   Future<void> saveUserToDatabase(String username, String email) async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return;
+    final userId = await UserSession.getUserId();
+    if (userId.isEmpty) return;
 
     final user = AccountModel(
-      userID: currentUser.uid,
+      userID: userId,
       username: username,
       email: email,
       icon: 'default_user_pfp.png',
@@ -117,7 +126,7 @@ class AccountPresenter implements AccountPresenterContract {
       commentsPosted: 0,
     );
 
-    await _databaseHelper.insertUser(user.toMap());
+    await _db.insertUser(user.toMap());
   }
 
   bool _isValidEmail(String email) {

@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
-import 'package:yomuyomu/contracts/manga_contract.dart';
 import 'package:yomuyomu/models/author_model.dart';
 import 'package:yomuyomu/models/manga_model.dart';
 import 'package:yomuyomu/presenters/library_presenter.dart';
@@ -18,7 +17,7 @@ class HistoryView extends StatefulWidget {
 }
 
 class _HistoryViewState extends State<HistoryView>
-    implements LibraryViewContract, FileViewContract {
+    implements LibraryViewContract {
   late final LibraryPresenter _libraryPresenter;
   late final TextEditingController _searchController;
 

@@ -2,12 +2,11 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:yomuyomu/contracts/manga_contract.dart';
 import 'package:yomuyomu/contracts/manga_detail_contract.dart';
 import 'package:yomuyomu/models/chapter_model.dart';
 import 'package:yomuyomu/models/manga_model.dart';
 import 'package:yomuyomu/presenters/manga_detail_presenter.dart';
-import 'package:yomuyomu/views/manga_viewer.dart';
+import 'package:yomuyomu/views/manga_viewer_view.dart';
 
 class MangaDetailView extends StatefulWidget {
   final MangaModel manga;
@@ -18,7 +17,7 @@ class MangaDetailView extends StatefulWidget {
 }
 
 class _MangaDetailViewState extends State<MangaDetailView>
-    implements MangaDetailViewContract, FileViewContract {
+    implements MangaDetailViewContract {
   late final MangaDetailPresenter _presenter;
   final TextEditingController _searchController = TextEditingController();
 
@@ -52,6 +51,7 @@ class _MangaDetailViewState extends State<MangaDetailView>
   }
 
   void _onChapterSelected(Chapter chapter) {
+    _presenter.sortChaptersByTitle(ascending: true);
     Navigator.push(
       context,
       MaterialPageRoute(

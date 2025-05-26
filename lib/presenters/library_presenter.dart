@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:path/path.dart';
 import 'package:archive/archive_io.dart';
@@ -5,6 +6,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:yomuyomu/contracts/library_contract.dart';
 import 'package:yomuyomu/enums/reading_status.dart';
+import 'package:yomuyomu/helpers/event_bus_helpder.dart';
+import 'package:yomuyomu/helpers/user_session_helper.dart';
 import 'package:yomuyomu/models/author_model.dart';
 import 'package:yomuyomu/models/chapter_model.dart';
 import 'package:yomuyomu/models/manga_model.dart';
@@ -21,9 +24,12 @@ class LibraryPresenter implements LibraryPresenterContract {
   List<MangaModel> _filtered = [];
   List<Author> _allAuthor = [];
 
-  LibraryPresenter(this.view, {String? userId}) : _userId = userId;
+  StreamSubscription<String>? _eventSub;
 
-  @override
+  LibraryPresenter(this.view, {String? userId}) : _userId = userId {
+    startListeningEvents();
+  }
+
   @override
   Future<void> loadMangas() async {
     try {
@@ -38,13 +44,31 @@ class LibraryPresenter implements LibraryPresenterContract {
 
           final genresFuture = _db.getGenreIdsForManga(mangaId);
           final userNoteFuture = _db.getUserNoteForManga(userId, mangaId);
+          final lastReadChapterFuture = _db.getLastReadChapterWithDate(
+            userId,
+            mangaId,
+          );
 
           final genres = await genresFuture;
           final userNote = await userNoteFuture;
+          final lastReadChapter = await lastReadChapterFuture;
 
+          if (lastReadChapter != null) {
+            return MangaModel.fromMap(
+              map,
+              lastReadDate: DateTime.fromMillisecondsSinceEpoch(
+                lastReadChapter.lastReadDate,
+              ),
+              lastChapterRead: lastReadChapter.chapterNumber,
+              genres: genres.toList(),
+              status: userNote?.readingStatus,
+              isFavorited: userNote?.isFavorited ?? false,
+              rating: userNote?.personalRating ?? 0,
+            );
+          }
           return MangaModel.fromMap(
             map,
-            genres: genres.take(3).toList(),
+            genres: genres.toList(),
             status: userNote?.readingStatus,
             isFavorited: userNote?.isFavorited ?? false,
             rating: userNote?.personalRating ?? 0,
@@ -177,7 +201,7 @@ class LibraryPresenter implements LibraryPresenterContract {
     if (picked == null || picked.files.isEmpty) return;
 
     final cbz = File(picked.files.single.path!);
-    final cbzPath = await _copyToAppStorage(cbz);
+    final cbzPath = cbz.path;
     final cbzName = basename(cbzPath);
 
     String title = basenameWithoutExtension(cbzName);
@@ -261,7 +285,7 @@ class LibraryPresenter implements LibraryPresenterContract {
     required bool isVolume,
   }) async {
     final cbzDir = Directory(
-      join((await getApplicationDocumentsDirectory()).path, 'cbz'),
+      join((await getApplicationDocumentsDirectory()).path, 'yomu yomu', 'cbz'),
     );
     final extractBasePath = join(cbzDir.path, mangaId);
     final regex = RegExp(
@@ -338,8 +362,9 @@ class LibraryPresenter implements LibraryPresenterContract {
 
   Future<void> _deleteCBZFiles(String mangaId) async {
     final dir = Directory(
-      join((await getApplicationDocumentsDirectory()).path, 'cbz'),
+      join((await getApplicationDocumentsDirectory()).path, 'yomu yomu', 'cbz'),
     );
+
     final mangaDir = Directory(join(dir.path, mangaId));
     final cbzFile = File(join(dir.path, '$mangaId.cbz'));
 
@@ -347,32 +372,23 @@ class LibraryPresenter implements LibraryPresenterContract {
     if (await cbzFile.exists()) await cbzFile.delete();
   }
 
-  Future<String> _copyToAppStorage(File file) async {
-    final baseDir = Directory(
-      join((await getApplicationDocumentsDirectory()).path, 'yomuyomu'),
-    );
 
-    final cbzDir = Directory(join(baseDir.path, 'cbz'));
-    if (!await cbzDir.exists()) {
-      await cbzDir.create(recursive: true);
-    }
+  void startListeningEvents() {
+    _eventSub = EventBus().stream.listen((event) {
+      if (event == 'progress_saved') {
+        loadMangas();
+      }
+    });
+  }
 
-    final dest = File(join(cbzDir.path, basename(file.path)));
-
-    if (await dest.exists()) {
-      await dest.delete();
-    }
-
-    return (await file.copy(dest.path)).path;
+  void dispose() {
+    _eventSub?.cancel();
   }
 
   Future<String> _getCurrentUserId() async {
-    final localUserId = await _db.getSingleUserID();
-
-    if (localUserId != null) {
-      return localUserId;
-    } else {
-      throw Exception("❌ No se encontró un userId en la base de datos local.");
-    }
+    if (_userId != null) return _userId!;
+    final userId = await UserSession.getUserId();
+    _userId = userId;
+    return userId;
   }
 }

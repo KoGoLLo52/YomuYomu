@@ -1,5 +1,6 @@
 import 'dart:io' show Platform;
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,12 +20,16 @@ import 'package:firebase_core/firebase_core.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   try {
     print('🔄 Inicializando Firebase...');
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    await FirebaseAuth.instance.authStateChanges().firstWhere(
+      (user) => user != null,
+    );
+    final firebaseUserId = FirebaseAuth.instance.currentUser?.uid;
+
     print('✅ Firebase inicializado correctamente.');
   } catch (e, st) {
     print('❌ Error al inicializar Firebase: $e');

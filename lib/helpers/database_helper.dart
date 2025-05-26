@@ -124,7 +124,7 @@ class DatabaseHelper {
         PanelID TEXT,
         LastReadDate INTEGER,
         SyncStatus INTEGER DEFAULT 0,
-        PRIMARY KEY (UserID),
+        PRIMARY KEY (UserID, PanelID),
         FOREIGN KEY (UserID) REFERENCES User(UserID),
         FOREIGN KEY (PanelID) REFERENCES Panel(PanelID) 
       );
@@ -521,6 +521,35 @@ class DatabaseHelper {
 
     if (result.isNotEmpty) {
       return UserNote.fromMap(result.first);
+    }
+
+    return null;
+  }
+
+  Future<LastReadChapter?> getLastReadChapterWithDate(
+    String userId,
+    String mangaId,
+  ) async {
+    final db = await database;
+
+    final result = await db.rawQuery(
+      '''
+    SELECT Chapter.ChapterNumber, UserProgress.LastReadDate
+    FROM UserProgress
+    JOIN Panel ON Panel.PanelID = UserProgress.PanelID
+    JOIN Chapter ON Chapter.ChapterID = Panel.ChapterID
+    WHERE UserProgress.UserID = ? AND Chapter.MangaID = ?
+    ORDER BY UserProgress.LastReadDate DESC
+    LIMIT 1;
+  ''',
+      [userId, mangaId],
+    );
+
+    if (result.isNotEmpty) {
+      return LastReadChapter(
+        chapterNumber: result.first['ChapterNumber'] as int,
+        lastReadDate: result.first['LastReadDate'] as int,
+      );
     }
 
     return null;

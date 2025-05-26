@@ -24,8 +24,8 @@ class DeleteTab extends StatelessWidget {
           ),
           ElevatedButton.icon(
             onPressed: () {
-              Navigator.of(context).pop(); // Cierra el diálogo
-              onDeleteConfirmed(); // Ejecuta callback
+              Navigator.of(context).pop();
+              onDeleteConfirmed(); 
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Manga eliminado: ${manga.title}')),
               );
