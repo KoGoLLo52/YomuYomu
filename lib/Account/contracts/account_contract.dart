@@ -1,7 +1,7 @@
 import 'package:yomuyomu/Account/model/account_model.dart';
 
 abstract class AccountViewContract {
-  void updateAccount(AccountModel account);
+  void updateAccount(AccountModel? account);
   void showLoading();
   void hideLoading();
   void showError(String message);

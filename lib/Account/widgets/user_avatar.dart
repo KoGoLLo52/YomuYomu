@@ -1,0 +1,55 @@
+import 'package:flutter/material.dart';
+import 'package:yomuyomu/Account/model/account_model.dart';
+
+class UserAvatarWidget extends StatelessWidget {
+  final AccountModel? account;
+  final VoidCallback onLogout;
+  final VoidCallback onLoginRegister;
+
+  const UserAvatarWidget({
+    required this.account,
+    required this.onLogout,
+    required this.onLoginRegister,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    ImageProvider avatarImage = (account?.icon?.isNotEmpty ?? false)
+        ? NetworkImage(account!.icon!)
+        : const AssetImage("assets/avatar.png");
+
+    return Row(
+      children: [
+        CircleAvatar(radius: 40, backgroundImage: avatarImage),
+        const SizedBox(width: 16),
+        Expanded(
+          child: account != null
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      account!.username,
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    GestureDetector(
+                      onTap: onLogout,
+                      child: Text(
+                        account!.email,
+                        style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
+                      ),
+                    ),
+                  ],
+                )
+              : GestureDetector(
+                  onTap: onLoginRegister,
+                  child: const Text(
+                    'Iniciar sesión / Registrarse',
+                    style: TextStyle(fontSize: 18, color: Colors.blue, decoration: TextDecoration.underline),
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+}

@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
@@ -231,15 +232,6 @@ class DatabaseHelper {
   Future<int> updateAuthor(Map<String, dynamic> data, String id) =>
       update('Author', data, 'AuthorID', id);
   Future<int> deleteAuthor(String id) => delete('Author', 'AuthorID', id);
-
-  Future<int> insertComment(Map<String, dynamic> data) =>
-      insert('Comment', data);
-  Future<List<Map<String, dynamic>>> getAllComments() => queryAll('Comment');
-  Future<Map<String, dynamic>?> getCommentById(String id) =>
-      queryById('Comment', 'CommentID', id);
-  Future<int> updateComment(Map<String, dynamic> data, String id) =>
-      update('Comment', data, 'CommentID', id);
-  Future<int> deleteComment(String id) => delete('Comment', 'CommentID', id);
 
   Future<int> insertManga(Map<String, dynamic> data) => insert('Manga', data);
   Future<List<Map<String, dynamic>>> getAllMangas() => queryAll('Manga');
@@ -601,6 +593,26 @@ class DatabaseHelper {
     }
 
     await db.delete('User', where: 'UserID = ?', whereArgs: [oldUserId]);
+  }
+
+  Future<List<String>> getFavoriteMangaCovers(String userId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> results = await db.rawQuery(
+      '''
+    SELECT M.CoverImage
+    FROM UserNote UN
+    INNER JOIN Manga M ON UN.MangaID = M.MangaID
+    WHERE UN.UserID = ? AND UN.IsFavorited = 1
+    ORDER BY UN.LastEdited DESC
+    LIMIT 5
+  ''',
+      [userId],
+    );
+
+    return results
+        .map((row) => row['CoverImage'] as String)
+        .where((cover) => cover.isNotEmpty)
+        .toList();
   }
 
   Future<String?> getSingleUserID() async {

@@ -11,18 +11,36 @@ class SyncService {
     final users = await db.query('User', where: 'SyncStatus = 1');
 
     for (var user in users) {
-      final userId = user['UserID'];
+      final userId = user['UserID'] as String;
       try {
-        await firestore.collection('users').doc(userId as String?).set({
-          'email': user['Email'],
-          'username': user['Username'],
-          'icon': user['Icon'],
-          'creationDate': user['CreationDate'],
+        final email = user['Email'] as String;
+        final username = user['Username'] as String;
+        final icon = user['Icon'] as String?;
+        final creationDateMillis = user['CreationDate'] as int;
+
+        final creationDate = DateTime.fromMillisecondsSinceEpoch(
+          creationDateMillis,
+        );
+
+        await firestore.collection('users').doc(userId).set({
+          'UserID': userId,
+          'Email': email,
+          'Username': username,
+          'Icon': icon,
+          'CreationDate': creationDate.millisecondsSinceEpoch,
+          'SyncStatus':
+              0,
         }, SetOptions(merge: true));
 
-        await db.update('User', {'SyncStatus': 0}, where: 'UserID = ?', whereArgs: [userId]);
-      } catch (e) {
-        print('Error sincronizando usuario $userId: $e');
+        await db.update(
+          'User',
+          {'SyncStatus': 0},
+          where: 'UserID = ?',
+          whereArgs: [userId],
+        );
+      } catch (e, st) {
+        print('❌ Error sincronizando usuario $userId: $e');
+        print(st);
       }
     }
   }
@@ -63,7 +81,12 @@ class SyncService {
           'chapters': manga['Chapters'],
         }, SetOptions(merge: true));
 
-        await db.update('Manga', {'SyncStatus': 0}, where: 'MangaID = ?', whereArgs: [mangaId]);
+        await db.update(
+          'Manga',
+          {'SyncStatus': 0},
+          where: 'MangaID = ?',
+          whereArgs: [mangaId],
+        );
       } catch (e) {
         print('Error sincronizando manga $mangaId: $e');
       }
@@ -87,7 +110,12 @@ class SyncService {
           'publicationDate': chapter['PublicationDate'],
         }, SetOptions(merge: true));
 
-        await db.update('Chapter', {'SyncStatus': 0}, where: 'ChapterID = ?', whereArgs: [chapterId]);
+        await db.update(
+          'Chapter',
+          {'SyncStatus': 0},
+          where: 'ChapterID = ?',
+          whereArgs: [chapterId],
+        );
       } catch (e) {
         print('Error sincronizando capítulo $chapterId: $e');
       }
@@ -107,7 +135,12 @@ class SyncService {
           'pageNumber': panel['PageNumber'],
         }, SetOptions(merge: true));
 
-        await db.update('Panel', {'SyncStatus': 0}, where: 'PanelID = ?', whereArgs: [panelId]);
+        await db.update(
+          'Panel',
+          {'SyncStatus': 0},
+          where: 'PanelID = ?',
+          whereArgs: [panelId],
+        );
       } catch (e) {
         print('Error sincronizando panel $panelId: $e');
       }
@@ -116,7 +149,10 @@ class SyncService {
 
   Future<void> syncUserProgressTable() async {
     final db = await dbHelper.database;
-    final progressList = await db.query('UserProgress', where: 'SyncStatus = 1');
+    final progressList = await db.query(
+      'UserProgress',
+      where: 'SyncStatus = 1',
+    );
 
     for (var progress in progressList) {
       final userId = progress['UserID'];
@@ -126,7 +162,12 @@ class SyncService {
           'lastReadDate': progress['LastReadDate'],
         }, SetOptions(merge: true));
 
-        await db.update('UserProgress', {'SyncStatus': 0}, where: 'UserID = ?', whereArgs: [userId]);
+        await db.update(
+          'UserProgress',
+          {'SyncStatus': 0},
+          where: 'UserID = ?',
+          whereArgs: [userId],
+        );
       } catch (e) {
         print('Error sincronizando progreso de usuario $userId: $e');
       }
@@ -157,14 +198,19 @@ class SyncService {
           whereArgs: [note['UserID'], note['MangaID']],
         );
       } catch (e) {
-        print('Error sincronizando nota de usuario ${note['UserID']} - manga ${note['MangaID']}: $e');
+        print(
+          'Error sincronizando nota de usuario ${note['UserID']} - manga ${note['MangaID']}: $e',
+        );
       }
     }
   }
 
   Future<void> syncUserSettingsTable() async {
     final db = await dbHelper.database;
-    final settingsList = await db.query('UserSettings', where: 'SyncStatus = 1');
+    final settingsList = await db.query(
+      'UserSettings',
+      where: 'SyncStatus = 1',
+    );
 
     for (var setting in settingsList) {
       final userId = setting['UserID'];
@@ -175,7 +221,12 @@ class SyncService {
           'orientation': setting['Orientation'],
         }, SetOptions(merge: true));
 
-        await db.update('UserSettings', {'SyncStatus': 0}, where: 'UserID = ?', whereArgs: [userId]);
+        await db.update(
+          'UserSettings',
+          {'SyncStatus': 0},
+          where: 'UserID = ?',
+          whereArgs: [userId],
+        );
       } catch (e) {
         print('Error sincronizando configuración de usuario $userId: $e');
       }
@@ -184,19 +235,30 @@ class SyncService {
 
   Future<void> syncUserLibraryStructureTable() async {
     final db = await dbHelper.database;
-    final folders = await db.query('UserLibraryStructure', where: 'SyncStatus = 1');
+    final folders = await db.query(
+      'UserLibraryStructure',
+      where: 'SyncStatus = 1',
+    );
 
     for (var folder in folders) {
       final folderId = folder['FolderID'];
       try {
-        await firestore.collection('user_folders').doc(folderId as String?).set({
-          'userId': folder['UserID'],
-          'folderName': folder['FolderName'],
-          'description': folder['Description'],
-          'parentFolderId': folder['ParentFolderID'],
-        }, SetOptions(merge: true));
+        await firestore
+            .collection('user_folders')
+            .doc(folderId as String?)
+            .set({
+              'userId': folder['UserID'],
+              'folderName': folder['FolderName'],
+              'description': folder['Description'],
+              'parentFolderId': folder['ParentFolderID'],
+            }, SetOptions(merge: true));
 
-        await db.update('UserLibraryStructure', {'SyncStatus': 0}, where: 'FolderID = ?', whereArgs: [folderId]);
+        await db.update(
+          'UserLibraryStructure',
+          {'SyncStatus': 0},
+          where: 'FolderID = ?',
+          whereArgs: [folderId],
+        );
       } catch (e) {
         print('Error sincronizando carpeta $folderId: $e');
       }
@@ -222,7 +284,9 @@ class SyncService {
           whereArgs: [relation['FolderID'], relation['MangaID']],
         );
       } catch (e) {
-        print('Error sincronizando relación Folder-Manga ${relation['FolderID']} - ${relation['MangaID']}: $e');
+        print(
+          'Error sincronizando relación Folder-Manga ${relation['FolderID']} - ${relation['MangaID']}: $e',
+        );
       }
     }
   }

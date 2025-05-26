@@ -8,9 +8,8 @@ class AccountModel {
 
   final String mostReadGenre;
   final String mostReadAuthor;
-  final List<Uri> favoriteMangaCovers;
+  final List<String> favoriteMangaCovers;
   final int finishedMangasCount;
-  final int commentsPosted;
 
   AccountModel({
     required this.userID,
@@ -23,7 +22,6 @@ class AccountModel {
     this.mostReadAuthor = '',
     this.favoriteMangaCovers = const [],
     this.finishedMangasCount = 0,
-    this.commentsPosted = 0,
   });
 
   Map<String, dynamic> toMap() {
@@ -48,7 +46,21 @@ class AccountModel {
     );
   }
 
-  factory AccountModel.fromJson(Map<String, dynamic> json) => AccountModel.fromMap(json);
+   Map<String, dynamic> toJson() => {
+    'UserID': userID,
+    'Email': email,
+    'Username': username,
+    'Icon': icon,
+    'CreationDate': creationDate,
+    'SyncStatus': syncStatus,
+  };
 
-  Map<String, dynamic> toJson() => toMap();
+  factory AccountModel.fromJson(Map<String, dynamic> json) => AccountModel(
+    userID: json['UserID'],
+    email: json['Email'],
+    username: json['Username'],
+    icon: json['Icon'],
+    creationDate: json['CreationDate'],
+    syncStatus: json['SyncStatus'] ?? 0,
+  );
 }

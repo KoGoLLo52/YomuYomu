@@ -25,10 +25,14 @@ Future<void> main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    await FirebaseAuth.instance.authStateChanges().firstWhere(
-      (user) => user != null,
-    );
-    final firebaseUserId = FirebaseAuth.instance.currentUser?.uid;
+    try {
+      await FirebaseAuth.instance
+          .authStateChanges()
+          .firstWhere((user) => user != null)
+          .timeout(const Duration(milliseconds: 50));
+    } catch (_) {
+      print('❌ Firebase timeouteado.');
+    }
 
     print('✅ Firebase inicializado correctamente.');
   } catch (e, st) {
