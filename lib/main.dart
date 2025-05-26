@@ -6,15 +6,15 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-import 'package:yomuyomu/config/global_settings.dart';
+import 'package:yomuyomu/Settings/global_settings.dart';
 import 'package:yomuyomu/firebase_options.dart';
-import 'package:yomuyomu/helpers/database_helper.dart';
-import 'package:yomuyomu/insert_mock_data.dart';
-import 'package:yomuyomu/views/account_view.dart';
-import 'package:yomuyomu/views/history_view.dart';
-import 'package:yomuyomu/views/library_view.dart';
-import 'package:yomuyomu/views/settings_view.dart';
-import 'package:yomuyomu/presenters/settings_presenter.dart';
+import 'package:yomuyomu/DataBase/database_helper.dart';
+import 'package:yomuyomu/DataBase/insert_mock_data.dart';
+import 'package:yomuyomu/Account/views/account_view.dart';
+import 'package:yomuyomu/Mangas/views/history_view.dart';
+import 'package:yomuyomu/Mangas/views/library_view.dart';
+import 'package:yomuyomu/Settings/views/settings_view.dart';
+import 'package:yomuyomu/Settings/presenters/settings_presenter.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 
@@ -55,7 +55,7 @@ Future<void> main() async {
     // print('Base de datos borrada');
 
     print('📝 Insertando datos de muestra...');
-    await insertSampleData();
+    await insertBaseData();
     print('✅ Datos de muestra insertados.');
 
     print('📂 Abriendo base de datos...');
