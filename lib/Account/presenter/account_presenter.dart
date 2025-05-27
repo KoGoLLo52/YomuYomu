@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 import 'package:yomuyomu/Account/contracts/account_contract.dart';
 import 'package:yomuyomu/Mangas/enums/reading_status.dart';
 import 'package:yomuyomu/DataBase/database_helper.dart';
@@ -16,8 +17,9 @@ class AccountPresenter implements AccountPresenterContract {
   AccountPresenter(this._view);
 
   void initSessionListener() {
-    _authSubscription =
-        FirebaseAuth.instance.authStateChanges().listen((user) async {
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen((
+      user,
+    ) async {
       if (user != null) {
         await loadUserData();
       } else {
@@ -30,7 +32,7 @@ class AccountPresenter implements AccountPresenterContract {
   Future<void> loadUserData() async {
     try {
       _view.showLoading();
-      
+
       final account = await _getUserAccount();
       _view.updateAccount(account);
     } catch (e) {
@@ -54,8 +56,9 @@ class AccountPresenter implements AccountPresenterContract {
     final prefs = await SharedPreferences.getInstance();
     final oldID = prefs.getString('old_user_id');
 
-    Map<String, dynamic>? userMap =
-        await _db.getUserByEmail(firebaseUser.email!);
+    Map<String, dynamic>? userMap = await _db.getUserByEmail(
+      firebaseUser.email!,
+    );
 
     if (userMap == null) {
       if (oldID != null && oldID != userId) {
@@ -73,11 +76,14 @@ class AccountPresenter implements AccountPresenterContract {
     await prefs.setString('old_user_id', userId);
 
     final List<UserNote> notes = await _db.getUserNotes(userId);
-    final List<String> favoritedCovers = await _db.getFavoriteMangaCovers(userId);
+    final List<String> favoritedCovers = await _db.getFavoriteMangaCovers(
+      userId,
+    );
 
-    final int finishedCount = notes
-        .where((note) => note.readingStatus == ReadingStatus.completed)
-        .length;
+    final int finishedCount =
+        notes
+            .where((note) => note.readingStatus == ReadingStatus.completed)
+            .length;
 
     return AccountModel.fromMap({
       ...userMap,
@@ -109,8 +115,15 @@ class AccountPresenter implements AccountPresenterContract {
     await _db.insertUser(user.toMap());
   }
 
+  @override
   Future<void> logout() async {
+    String oldID = await UserSession.getUserId();
     await FirebaseAuth.instance.signOut();
+
+    String newID = const Uuid().v4();
+    if (oldID != newID) {
+      await _db.migrateUserData(oldID, newID);
+    }
     _view.updateAccount(null);
     _view.showError("Sesión cerrada.");
   }
@@ -121,7 +134,7 @@ class AccountPresenter implements AccountPresenterContract {
     final domain = email.split('@').last;
     return regex.hasMatch(email) && !invalidDomains.contains(domain);
   }
-  
+
   void dispose() {
     _authSubscription?.cancel();
   }

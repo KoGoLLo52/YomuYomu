@@ -9,6 +9,7 @@ abstract class AccountViewContract {
 
 
 abstract class AccountPresenterContract {
+  Future<void> logout();
   Future<void> loadUserData();
   Future<void> saveUserToDatabase(String nickname, String email);
 }

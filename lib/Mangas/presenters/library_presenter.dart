@@ -36,7 +36,7 @@ class LibraryPresenter implements LibraryPresenterContract {
       view.showLoading();
 
       final mangaData = await _db.getAllMangas();
-      final userId = await _getCurrentUserId();
+      final userId = await UserSession.getStoredUserId();
 
       _allMangas = await Future.wait(
         mangaData.map((map) async {
@@ -142,7 +142,7 @@ class LibraryPresenter implements LibraryPresenterContract {
   }
 
   Future<void> updateMangaStatus(String mangaId, ReadingStatus status) async {
-    final userId = await _getCurrentUserId();
+    final userId = await UserSession.getStoredUserId();
     await _db.updateMangaStatus(
       userId: userId,
       mangaId: mangaId,
@@ -152,7 +152,7 @@ class LibraryPresenter implements LibraryPresenterContract {
   }
 
   Future<void> toggleFavoriteStatus(MangaModel manga) async {
-    final userId = await _getCurrentUserId();
+    final userId = await UserSession.getStoredUserId();
     final newStatus = !manga.isFavorited;
 
     // Actualizar en la base de datos
@@ -208,7 +208,7 @@ class LibraryPresenter implements LibraryPresenterContract {
     int? volume;
     DateTime? publicationDate;
     List<String> genres = [];
-    _userId = await _getCurrentUserId();
+    _userId = await UserSession.getStoredUserId();
     final regex = RegExp(
       r'^(.*?)\s+v(\d+)\s+\((\d{4})\)\s+\((.*?)\)\s+\((.*?)\)\.cbz$',
       caseSensitive: false,
@@ -242,7 +242,7 @@ class LibraryPresenter implements LibraryPresenterContract {
 
       await _db.insertManga(manga.toMap());
 
-      final userId = await _getCurrentUserId();
+      final userId = await UserSession.getStoredUserId();
       final note = await _db.getUserNote(userId, manga.id);
       if (note == null) {
         await _db.insertOrUpdateUserNote(
@@ -383,12 +383,5 @@ class LibraryPresenter implements LibraryPresenterContract {
 
   void dispose() {
     _eventSub?.cancel();
-  }
-
-  Future<String> _getCurrentUserId() async {
-    if (_userId != null) return _userId!;
-    final userId = await UserSession.getUserId();
-    _userId = userId;
-    return userId;
   }
 }

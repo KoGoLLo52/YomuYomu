@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:yomuyomu/Mangas/models/author_model.dart';
@@ -248,9 +247,4 @@ class _HistoryViewState extends State<HistoryView>
   @override
   void showLoading() {}
 
-  @override
-  void showMangaDetails(MangaModel manga) {}
-
-  @override
-  void showImagesInMemory(List<Uint8List> imageData) {}
 }

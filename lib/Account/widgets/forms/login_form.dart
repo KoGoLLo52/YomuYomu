@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:yomuyomu/Account/helpers/user_session_helper.dart';
+import 'package:yomuyomu/DataBase/database_helper.dart';
 
 class LoginForm extends StatefulWidget {
   final VoidCallback onLoginSuccess;
 
-  const LoginForm({Key? key, required this.onLoginSuccess}) : super(key: key);
+  const LoginForm({super.key, required this.onLoginSuccess});
 
   @override
   State<LoginForm> createState() => _LoginFormState();
@@ -26,16 +28,33 @@ class _LoginFormState extends State<LoginForm> {
     if (!_formKey.currentState!.validate()) return;
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final authResult = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
+      final firebaseUser = authResult.user;
+      if (firebaseUser == null) {
+        throw Exception('No se obtuvo el usuario de Firebase.');
+      }
+
       if (!mounted) return;
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sesión iniciada')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Sesión iniciada')));
+
+      final oldLocalId = await UserSession.getStoredUserId();
+      final newFirebaseId = firebaseUser.uid;
+
+      if (oldLocalId != newFirebaseId) {
+        await DatabaseHelper.instance.migrateUserData(
+          oldLocalId,
+          newFirebaseId,
+        );
+        await UserSession.clear();
+      }
+
       widget.onLoginSuccess();
     } catch (e) {
       if (!mounted) return;
@@ -47,16 +66,17 @@ class _LoginFormState extends State<LoginForm> {
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Error'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+      builder:
+          (_) => AlertDialog(
+            title: const Text('Error'),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -73,15 +93,14 @@ class _LoginFormState extends State<LoginForm> {
               controller: _emailController,
               decoration: const InputDecoration(labelText: 'Email'),
               keyboardType: TextInputType.emailAddress,
-              validator: (value) =>
-                  value!.isEmpty ? 'Ingrese su email' : null,
+              validator: (value) => value!.isEmpty ? 'Ingrese su email' : null,
             ),
             TextFormField(
               controller: _passwordController,
               decoration: const InputDecoration(labelText: 'Contraseña'),
               obscureText: true,
-              validator: (value) =>
-                  value!.isEmpty ? 'Ingrese su contraseña' : null,
+              validator:
+                  (value) => value!.isEmpty ? 'Ingrese su contraseña' : null,
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(

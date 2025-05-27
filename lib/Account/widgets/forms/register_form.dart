@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:yomuyomu/Account/helpers/user_session_helper.dart';
+import 'package:yomuyomu/DataBase/database_helper.dart';
 
 class RegisterForm extends StatefulWidget {
   final VoidCallback onRegisterSuccess;
   final Future<void> Function(String username, String email) saveUserToDatabase;
 
   const RegisterForm({
-    Key? key,
+    super.key,
     required this.onRegisterSuccess,
     required this.saveUserToDatabase,
-  }) : super(key: key);
+  });
 
   @override
   State<RegisterForm> createState() => _RegisterFormState();
@@ -42,7 +44,11 @@ class _RegisterFormState extends State<RegisterForm> {
         password: password,
       );
 
-      await cred.user?.updateDisplayName(username);
+      final firebaseUser = cred.user;
+      if (firebaseUser == null)
+        throw Exception('No se pudo obtener el usuario de Firebase.');
+
+      await firebaseUser.updateDisplayName(username);
       await widget.saveUserToDatabase(username, email);
 
       if (!mounted) return;
@@ -50,6 +56,18 @@ class _RegisterFormState extends State<RegisterForm> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Cuenta creada exitosamente')),
       );
+
+      final oldLocalId = await UserSession.getStoredUserId();
+      final newFirebaseId = firebaseUser.uid;
+
+      if (oldLocalId != newFirebaseId) {
+        await DatabaseHelper.instance.migrateUserData(
+          oldLocalId,
+          newFirebaseId,
+        );
+        await UserSession.clear();
+      }
+
       widget.onRegisterSuccess();
     } catch (e) {
       if (!mounted) return;
@@ -61,16 +79,17 @@ class _RegisterFormState extends State<RegisterForm> {
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Error'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+      builder:
+          (_) => AlertDialog(
+            title: const Text('Error'),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -86,22 +105,22 @@ class _RegisterFormState extends State<RegisterForm> {
             TextFormField(
               controller: _usernameController,
               decoration: const InputDecoration(labelText: 'Nombre de usuario'),
-              validator: (value) =>
-                  value!.isEmpty ? 'Ingrese un nombre de usuario' : null,
+              validator:
+                  (value) =>
+                      value!.isEmpty ? 'Ingrese un nombre de usuario' : null,
             ),
             TextFormField(
               controller: _emailController,
               decoration: const InputDecoration(labelText: 'Email'),
               keyboardType: TextInputType.emailAddress,
-              validator: (value) =>
-                  value!.isEmpty ? 'Ingrese su email' : null,
+              validator: (value) => value!.isEmpty ? 'Ingrese su email' : null,
             ),
             TextFormField(
               controller: _passwordController,
               decoration: const InputDecoration(labelText: 'Contraseña'),
               obscureText: true,
-              validator: (value) =>
-                  value!.isEmpty ? 'Ingrese su contraseña' : null,
+              validator:
+                  (value) => value!.isEmpty ? 'Ingrese su contraseña' : null,
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(

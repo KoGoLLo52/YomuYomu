@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:yomuyomu/Mangas/contracts/manga_detail_contract.dart';
@@ -210,14 +209,8 @@ class _MangaDetailViewState extends State<MangaDetailView>
   void showError(String message) {}
 
   @override
-  void showImagesInMemory(List<Uint8List> imageData) {}
-
-  @override
   void hideLoading() {}
 
   @override
   void showLoading() {}
-
-  @override
-  void showMangaDetails(MangaModel manga) {}
 }

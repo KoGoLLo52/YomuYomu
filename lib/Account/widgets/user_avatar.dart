@@ -15,13 +15,10 @@ class UserAvatarWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    ImageProvider avatarImage = (account?.icon?.isNotEmpty ?? false)
-        ? NetworkImage(account!.icon!)
-        : const AssetImage("assets/avatar.png");
 
     return Row(
       children: [
-        CircleAvatar(radius: 40, backgroundImage: avatarImage),
+        CircleAvatar(radius: 40),
         const SizedBox(width: 16),
         Expanded(
           child: account != null

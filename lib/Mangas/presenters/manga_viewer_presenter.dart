@@ -28,7 +28,7 @@ class MangaViewerPresenter {
   }
 
   Future<void> saveProgress(String panelId) async {
-    final userId = await UserSession.getUserId();
+    final userId = await UserSession.getStoredUserId();
     final db = await DatabaseHelper.instance.database;
     final now = DateTime.now().millisecondsSinceEpoch;
 

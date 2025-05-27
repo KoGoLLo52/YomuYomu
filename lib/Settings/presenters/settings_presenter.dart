@@ -19,14 +19,15 @@ class SettingsPresenter extends ChangeNotifier {
 
   Future<void> loadSettings() async {
     try {
-      final userId = await UserSession.getUserId();
+      final userId = await UserSession.getStoredUserId();
+
       final settingsMap = await _dbHelper.getUserSettingsById(userId);
 
       if (settingsMap != null) {
         _settings = SettingsModel.fromMap(settingsMap);
       } else {
         _settings = SettingsModel(
-          userID: userId,
+          userID: userId, 
           language: 0,
           theme: 0,
           orientation: 0,
@@ -52,7 +53,7 @@ class SettingsPresenter extends ChangeNotifier {
         newSettings.userID,
       );
       _settings = newSettings;
-      _syncOrientationWithNotifier(); // <- Muy importante
+      _syncOrientationWithNotifier();
       notifyListeners();
     } catch (e) {
       _error = e.toString();
@@ -82,7 +83,7 @@ class SettingsPresenter extends ChangeNotifier {
     if (_settings == null) return;
 
     final updated = SettingsModel(
-      userID: _settings!.userID,
+      userID: _settings!.userID, 
       theme: theme ?? _settings!.theme,
       language: language ?? _settings!.language,
       orientation: orientation ?? _settings!.orientation,

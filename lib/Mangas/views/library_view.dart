@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:yomuyomu/Mangas/enums/reading_status.dart';
 import 'package:yomuyomu/DataBase/database_helper.dart';
@@ -13,7 +12,6 @@ import 'package:yomuyomu/Mangas/widgets/filter_genre_dialog.dart';
 import 'package:yomuyomu/Mangas/widgets/filter_status_dialog.dart';
 import 'package:yomuyomu/Mangas/widgets/manga_options_dialog.dart';
 import 'package:yomuyomu/Mangas/widgets/sort_dialog.dart';
-import 'package:yomuyomu/Mangas/widgets/status_tab.dart';
 
 Map<ReadingStatus, bool> filterStatus = {
   for (var status in ReadingStatus.values) status: false,
@@ -328,10 +326,4 @@ class _LibraryViewState extends State<LibraryView>
 
   @override
   void hideLoading() {}
-
-  @override
-  void showMangaDetails(MangaModel manga) {}
-
-  @override
-  void showImagesInMemory(List<Uint8List> imageData) {}
 }

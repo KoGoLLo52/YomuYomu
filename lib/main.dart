@@ -5,11 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:yomuyomu/Account/helpers/user_session_helper.dart';
 
 import 'package:yomuyomu/Settings/global_settings.dart';
 import 'package:yomuyomu/firebase_options.dart';
 import 'package:yomuyomu/DataBase/database_helper.dart';
-import 'package:yomuyomu/DataBase/insert_mock_data.dart';
+import 'package:yomuyomu/DataBase/insert_base_data.dart';
 import 'package:yomuyomu/Account/views/account_view.dart';
 import 'package:yomuyomu/Mangas/views/history_view.dart';
 import 'package:yomuyomu/Mangas/views/library_view.dart';
@@ -30,11 +31,10 @@ Future<void> main() async {
           .authStateChanges()
           .firstWhere((user) => user != null)
           .timeout(const Duration(milliseconds: 50));
+      print('✅ Firebase inicializado correctamente.');
     } catch (_) {
       print('❌ Firebase timeouteado.');
     }
-
-    print('✅ Firebase inicializado correctamente.');
   } catch (e, st) {
     print('❌ Error al inicializar Firebase: $e');
     print(st);
@@ -71,6 +71,8 @@ Future<void> main() async {
   }
 
   print('🚀 Ejecutando la aplicación...');
+  String userId = await UserSession.getStoredUserId();
+  print('Se inicio sesion con userId: $userId');
   runApp(
     ChangeNotifierProvider(
       create: (_) => SettingsPresenter(),
@@ -104,6 +106,11 @@ class AppRoot extends StatelessWidget {
     return Consumer<SettingsPresenter>(
       builder: (context, presenter, _) {
         final settings = presenter.settings;
+        final error = presenter.error;
+
+        if (error != null) {
+          print('❌ Error cargando ajustes: $error');
+        }
 
         if (settings == null) {
           return const MaterialApp(

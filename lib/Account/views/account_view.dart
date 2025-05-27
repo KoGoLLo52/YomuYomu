@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:yomuyomu/Account/contracts/account_contract.dart';
 import 'package:yomuyomu/Account/model/account_model.dart';
 import 'package:yomuyomu/Account/presenter/account_presenter.dart';
-import 'package:yomuyomu/Account/widgets/account_options_dialog.dart';
 import 'package:yomuyomu/Account/widgets/login_register_dialog.dart';
 import 'package:yomuyomu/Account/widgets/user_avatar.dart';
 
@@ -15,8 +14,7 @@ class AccountView extends StatefulWidget {
   State<AccountView> createState() => _AccountViewState();
 }
 
-class _AccountViewState extends State<AccountView>
-    implements AccountViewContract {
+class _AccountViewState extends State<AccountView> implements AccountViewContract {
   late final AccountPresenterContract _presenter;
   late final StreamSubscription<User?> _authSubscription;
 
@@ -28,14 +26,14 @@ class _AccountViewState extends State<AccountView>
     _presenter = AccountPresenter(this);
 
     _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (!mounted) return;
+
       if (user != null) {
         _presenter.loadUserData();
       } else {
-        if (mounted) {
-          setState(() {
-            _account = null;
-          });
-        }
+        setState(() {
+          _account = null;
+        });
       }
     });
   }
@@ -43,74 +41,38 @@ class _AccountViewState extends State<AccountView>
   @override
   void updateAccount(AccountModel? account) {
     if (!mounted) return;
-    setState(() {
-      _account = account;
-    });
-  }
-
-  void _showAccountOptions() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder:
-          (context) => AccountOptionsDialog(
-            onLoginRegister: _showLoginRegisterDialog,
-            onLogout:
-                _account != null
-                    ? () async {
-                      await FirebaseAuth.instance.signOut();
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Sesión cerrada')),
-                        );
-                        _presenter.loadUserData();
-                      }
-                    }
-                    : null,
-          ),
-    );
+    setState(() => _account = account);
   }
 
   void _showLoginRegisterDialog() {
     showDialog(
       context: context,
-      builder:
-          (_) => LoginRegisterDialog(
-            loadUserData: _presenter.loadUserData,
-            saveUserToDatabase: _presenter.saveUserToDatabase,
-          ),
+      builder: (_) => LoginRegisterDialog(
+        loadUserData: _presenter.loadUserData,
+        saveUserToDatabase: _presenter.saveUserToDatabase,
+      ),
+    );
+  }
+
+  Future<void> _handleLogout() async {
+    await _presenter.logout(); 
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Sesión cerrada')),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Cuenta"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: _showAccountOptions,
-          ),
-        ],
-      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
             UserAvatarWidget(
               account: _account,
-              onLogout: () async {
-                await FirebaseAuth.instance.signOut();
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Sesión cerrada')),
-                  );
-                  _presenter.loadUserData();
-                }
-              },
+              onLogout: _handleLogout,
               onLoginRegister: _showLoginRegisterDialog,
             ),
             const Divider(height: 32),
@@ -125,30 +87,25 @@ class _AccountViewState extends State<AccountView>
             _account == null || _account!.favoriteMangaCovers.isEmpty
                 ? const Text("No tienes mangas favoritos.")
                 : SizedBox(
-                  height: 120,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children:
-                        _account!.favoriteMangaCovers
-                            .map(
-                              (url) => Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4.0,
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(
-                                    url,
-                                    width: 100,
-                                    height: 150,
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                              ),
-                            )
-                            .toList(),
+                    height: 120,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: _account!.favoriteMangaCovers.map((url) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              url,
+                              width: 100,
+                              height: 150,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
                   ),
-                ),
             const SizedBox(height: 12),
             Text("Mangas terminados: ${_account?.finishedMangasCount ?? 0}"),
           ],
@@ -172,3 +129,4 @@ class _AccountViewState extends State<AccountView>
     super.dispose();
   }
 }
+

@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
@@ -548,32 +547,34 @@ class DatabaseHelper {
   }
 
   Future<void> migrateUserData(String oldUserId, String newUserId) async {
-    final db = await database;
+  final db = await database;
 
-    final oldUser = await db.query(
+  await db.transaction((txn) async {
+    final oldUserRecords = await txn.query(
       'User',
       where: 'UserID = ?',
       whereArgs: [oldUserId],
     );
 
-    if (oldUser.isNotEmpty) {
-      final newUser = Map<String, dynamic>.from(oldUser.first);
-      newUser['UserID'] = newUserId;
+    if (oldUserRecords.isEmpty) {
+      print('El usuario con ID $oldUserId no existe en la tabla User. No se realizará la migración.');
+      return;
+    }
 
-      // Comprobar si newUserId ya existe
-      final existingNewUser = await db.query(
-        'User',
-        where: 'UserID = ?',
-        whereArgs: [newUserId],
-      );
+    final oldUser = oldUserRecords.first;
+    final newUser = Map<String, dynamic>.from(oldUser);
+    newUser['UserID'] = newUserId;
 
-      if (existingNewUser.isEmpty) {
-        await db.insert('User', newUser);
-      } else {
-        print(
-          'El usuario con ID $newUserId ya existe. No se insertó nuevamente.',
-        );
-      }
+    final existingNewUser = await txn.query(
+      'User',
+      where: 'UserID = ?',
+      whereArgs: [newUserId],
+    );
+
+    if (existingNewUser.isEmpty) {
+      await txn.insert('User', newUser);
+    } else {
+      print('El usuario con ID $newUserId ya existe en la tabla User. Se usará ese registro.');
     }
 
     final tablesToUpdate = [
@@ -584,7 +585,20 @@ class DatabaseHelper {
     ];
 
     for (final table in tablesToUpdate) {
-      await db.update(
+      if (table == 'UserSettings') {
+        final existingNewRecord = await txn.query(
+          table,
+          where: 'UserID = ?',
+          whereArgs: [newUserId],
+        );
+        if (existingNewRecord.isNotEmpty) {
+          print('El registro en $table para UserID $newUserId ya existe. Se omite la migración para este caso.');
+          await txn.delete(table, where: 'UserID = ?', whereArgs: [oldUserId]);
+          continue;
+        }
+      }
+      
+      await txn.update(
         table,
         {'UserID': newUserId},
         where: 'UserID = ?',
@@ -592,8 +606,11 @@ class DatabaseHelper {
       );
     }
 
-    await db.delete('User', where: 'UserID = ?', whereArgs: [oldUserId]);
-  }
+    final countDeleted = await txn.delete('User', where: 'UserID = ?', whereArgs: [oldUserId]);
+    print('Migración completada: se migró el usuario $oldUserId a $newUserId. Registros borrados en User: $countDeleted.');
+  });
+}
+
 
   Future<List<String>> getFavoriteMangaCovers(String userId) async {
     final db = await database;
