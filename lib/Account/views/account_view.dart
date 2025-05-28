@@ -32,7 +32,7 @@ class _AccountViewState extends State<AccountView>
 
       if (user != null) {
         _presenter.loadUserData();
-      } 
+      }
     });
   }
 
@@ -89,32 +89,23 @@ class _AccountViewState extends State<AccountView>
                     scrollDirection: Axis.horizontal,
                     children:
                         _account!.favoriteMangaCovers.map((path) {
-                          final isLocal =
-                              path.startsWith('file:/') ||
-                              path.contains(
-                                r':\',
-                              ); 
-
                           return Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 4.0,
                             ),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(8),
-                              child:
-                                  isLocal
-                                      ? Image.file(
-                                        File(path),
-                                        width: 100,
-                                        height: 150,
-                                        fit: BoxFit.cover,
-                                      )
-                                      : Image.network(
-                                        path,
-                                        width: 100,
-                                        height: 150,
-                                        fit: BoxFit.cover,
-                                      ),
+                              child: Image.file(
+                                File(path!),
+                                width: 80,
+                                height: 120,
+                                fit: BoxFit.cover,
+                                errorBuilder:
+                                    (_, __, ___) => const Icon(
+                                      Icons.broken_image,
+                                      size: 48,
+                                    ),
+                              ),
                             ),
                           );
                         }).toList(),
