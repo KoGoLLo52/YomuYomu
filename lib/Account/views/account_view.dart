@@ -96,7 +96,7 @@ class _AccountViewState extends State<AccountView>
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(8),
                               child: Image.file(
-                                File(path!),
+                                File(path),
                                 width: 80,
                                 height: 120,
                                 fit: BoxFit.cover,
