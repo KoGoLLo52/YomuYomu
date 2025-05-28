@@ -1,30 +1,27 @@
 import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:uuid/uuid.dart';
 import 'package:yomuyomu/Account/contracts/account_contract.dart';
-import 'package:yomuyomu/Mangas/enums/reading_status.dart';
-import 'package:yomuyomu/DataBase/database_helper.dart';
-import 'package:yomuyomu/Account/helpers/user_session_helper.dart';
 import 'package:yomuyomu/Account/model/account_model.dart';
+import 'package:yomuyomu/DataBase/database_helper.dart';
+import 'package:yomuyomu/Mangas/enums/reading_status.dart';
 import 'package:yomuyomu/Mangas/models/usernote_model.dart';
+import 'package:yomuyomu/Settings/global_settings.dart';
 
 class AccountPresenter implements AccountPresenterContract {
   final AccountViewContract _view;
   final DatabaseHelper _db = DatabaseHelper();
   StreamSubscription<User?>? _authSubscription;
 
-  AccountPresenter(this._view);
+  AccountPresenter(this._view) {
+    _getUserAccountWithNotesAndCovers();
+  }
 
   void initSessionListener() {
     _authSubscription = FirebaseAuth.instance.authStateChanges().listen((
       user,
     ) async {
-      if (user != null) {
-        await loadUserData();
-      } else {
-        _view.updateAccount(null);
-      }
+      await loadUserData();
     });
   }
 
@@ -33,8 +30,7 @@ class AccountPresenter implements AccountPresenterContract {
     try {
       _view.showLoading();
 
-      final account = await _getUserAccount();
-      _view.updateAccount(account);
+      await _getUserAccountWithNotesAndCovers();
     } catch (e) {
       _view.showError('Error cargando datos del usuario: $e');
     } finally {
@@ -42,74 +38,63 @@ class AccountPresenter implements AccountPresenterContract {
     }
   }
 
-  Future<AccountModel?> _getUserAccount() async {
-    final firebaseUser = await FirebaseAuth.instance.authStateChanges().first;
-    if (firebaseUser == null ||
-        firebaseUser.email == null ||
-        !_isValidEmail(firebaseUser.email!)) {
-      return null;
-    }
+  Future<void> _getUserAccountWithNotesAndCovers() async {
+    final firebaseUser = FirebaseAuth.instance.currentUser;
 
-    final userId = await UserSession.getUserId();
-    if (userId.isEmpty) return null;
+    Map<String, dynamic>? userMap;
+    String email = 'local@local.a';
+    String username = 'local';
 
-    final prefs = await SharedPreferences.getInstance();
-    final oldID = prefs.getString('old_user_id');
+    if (firebaseUser != null &&
+        firebaseUser.email != null &&
+        _isValidEmail(firebaseUser.email!)) {
+      email = firebaseUser.email!;
+      username = firebaseUser.displayName ?? 'local';
 
-    Map<String, dynamic>? userMap = await _db.getUserByEmail(
-      firebaseUser.email!,
-    );
+      userMap = await _db.getUserByEmail(email);
 
-    if (userMap == null) {
-      if (oldID != null && oldID != userId) {
-        await _db.migrateUserData(oldID, userId);
+      if (userMap == null) {
+        await saveUserToDatabase(username, email);
+        userMap = await _db.getUserByEmail(email);
       }
-
-      await saveUserToDatabase(
-        firebaseUser.displayName ?? 'Usuario',
-        firebaseUser.email!,
-      );
-      userMap = await _db.getUserByEmail(firebaseUser.email!);
-      if (userMap == null) return null;
     }
 
-    await prefs.setString('old_user_id', userId);
+    userMap ??= {
+      'UserID': userId,
+      'Username': username,
+      'Email': email,
+      'Icon': 'default_user_pfp.png',
+      'CreationDate': DateTime.now().millisecondsSinceEpoch,
+    };
 
+    _view.updateAccount(await _buildAccountModel(userMap));
+  }
+
+  Future<AccountModel> _buildAccountModel(Map<String, dynamic> userMap) async {
     final List<UserNote> notes = await _db.getUserNotes(userId);
     final List<String> favoritedCovers = await _db.getFavoriteMangaCovers(
       userId,
     );
-
     final int finishedCount =
         notes
             .where((note) => note.readingStatus == ReadingStatus.completed)
             .length;
 
-    return AccountModel.fromMap({
-      ...userMap,
-      'MostReadGenre': 'Shonen',
-      'MostReadAuthor': 'Autor Ejemplo',
-      'FavoriteMangaCovers': favoritedCovers,
-      'FinishedMangasCount': finishedCount,
-    });
+    return AccountModel.fromMap(
+      userMap,
+      favoriteMangaCovers: favoritedCovers,
+      finishedMangasCount: finishedCount,
+    );
   }
 
   @override
   Future<void> saveUserToDatabase(String username, String email) async {
-    final String userId = await UserSession.getUserId();
-    if (userId.isEmpty) return;
-
     final user = AccountModel(
       userID: userId,
       username: username,
       email: email,
       icon: 'default_user_pfp.png',
       creationDate: DateTime.now(),
-      syncStatus: 0,
-      mostReadGenre: '',
-      mostReadAuthor: '',
-      favoriteMangaCovers: [],
-      finishedMangasCount: 0,
     );
 
     await _db.insertUser(user.toMap());
@@ -117,13 +102,9 @@ class AccountPresenter implements AccountPresenterContract {
 
   @override
   Future<void> logout() async {
-    String oldID = await UserSession.getUserId();
     await FirebaseAuth.instance.signOut();
+    
 
-    String newID = const Uuid().v4();
-    if (oldID != newID) {
-      await _db.migrateUserData(oldID, newID);
-    }
     _view.updateAccount(null);
     _view.showError("Sesión cerrada.");
   }

@@ -8,7 +8,6 @@ class UserNote {
   bool isFavorited;
   ReadingStatus readingStatus;
   DateTime? lastEdited;
-  int syncStatus;
 
   UserNote({
     required this.userId,
@@ -18,7 +17,6 @@ class UserNote {
     this.isFavorited = false,
     this.readingStatus = ReadingStatus.toRead,
     this.lastEdited,
-    this.syncStatus = 0,
   });
 
   Map<String, dynamic> toMap() {
@@ -30,7 +28,6 @@ class UserNote {
       'IsFavorited': isFavorited ? 1 : 0,
       'ReadingStatus': readingStatus.value, 
       'LastEdited': lastEdited?.millisecondsSinceEpoch,
-      'SyncStatus': syncStatus,
     };
   }
 
@@ -52,7 +49,6 @@ class UserNote {
           map['LastEdited'] != null
               ? DateTime.fromMillisecondsSinceEpoch(map['LastEdited'])
               : null,
-      syncStatus: map['SyncStatus'] ?? 0,
     );
   }
 }

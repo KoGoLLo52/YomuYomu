@@ -3,14 +3,12 @@ class SettingsModel {
   final int language;
   final int theme;
   final int orientation;
-  final int syncStatus;
 
   SettingsModel({
     required this.userID,
     this.language = 0,
     this.theme = 0,
     this.orientation = 0,
-    this.syncStatus = 0,
   });
 
   Map<String, dynamic> toMap() {
@@ -19,7 +17,6 @@ class SettingsModel {
       'Language': language,
       'Theme': theme,
       'Orientation': orientation,
-      'SyncStatus': syncStatus,
     };
   }
 
@@ -29,7 +26,6 @@ class SettingsModel {
       language: map['Language'] ?? 0,
       theme: map['Theme'] ?? 0,
       orientation: map['Orientation'] ?? 0,
-      syncStatus: map['SyncStatus'] ?? 0,
     );
   }
 

@@ -14,6 +14,7 @@ class GenresTab extends StatefulWidget {
 }
 
 class _GenresTabState extends State<GenresTab> {
+  final _db = DatabaseHelper.instance;
   List<GenreModel> allGenres = [];
   Set<String> selectedGenreIds = {};
 
@@ -24,19 +25,17 @@ class _GenresTabState extends State<GenresTab> {
   }
 
   Future<void> _loadInitialData() async {
-    final db = DatabaseHelper.instance;
-    final genresFromDb = await db.getAllGenres();
-    final selectedIds = await db.getGenreIdsForManga(widget.manga.id);
+    final genresFromDb = await _db.getAllGenres();
+    final selectedIds = await _db.getGenreIdsForManga(widget.manga.id);
 
     setState(() {
       allGenres = genresFromDb;
       selectedGenreIds = Set<String>.from(selectedIds);
     });
-  }
+  } 
 
   Future<void> _saveGenres() async {
-    final db = DatabaseHelper.instance;
-    await db.updateMangaGenres(widget.manga.id, selectedGenreIds.toList());
+    await _db.updateMangaGenres(widget.manga.id, selectedGenreIds.toList());
 
     if (widget.onGenresUpdated != null) {
       widget.onGenresUpdated!();

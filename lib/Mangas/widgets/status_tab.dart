@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:yomuyomu/DataBase/firebase_helper.dart';
 import 'package:yomuyomu/Mangas/enums/reading_status.dart';
 import 'package:yomuyomu/DataBase/database_helper.dart';
 import 'package:yomuyomu/Mangas/models/manga_model.dart';
+import 'package:yomuyomu/Settings/global_settings.dart';
 
 class StatusTab extends StatefulWidget {
   final MangaModel manga;
@@ -18,9 +20,9 @@ class StatusTab extends StatefulWidget {
 }
 
 class _StatusTabState extends State<StatusTab> {
+  final _db = DatabaseHelper.instance;
   late ReadingStatus selectedStatus;
   bool isLoading = true;
-  late String userId;
 
   @override
   void initState() {
@@ -29,17 +31,13 @@ class _StatusTabState extends State<StatusTab> {
   }
 
   Future<void> _initUserAndLoadStatus() async {
-  final db = DatabaseHelper.instance;
-  userId = await db.getSingleUserID() ?? 'local';
-
   await _loadStatusFromDb();
 }
 
   Future<void> _loadStatusFromDb() async {
-    final db = DatabaseHelper.instance;
     ReadingStatus statusFromDb = widget.manga.status;
 
-    final note = await db.getUserNoteForManga(userId, widget.manga.id);
+    final note = await _db.getUserNoteForManga(userId, widget.manga.id);
     final status = note?.readingStatus;
     if (status != null) {
       statusFromDb = status;
@@ -52,13 +50,12 @@ class _StatusTabState extends State<StatusTab> {
   }
 
   Future<void> _saveStatus(ReadingStatus newStatus) async {
-    final db = DatabaseHelper.instance;
-    await db.updateMangaStatus(
+    await _db.updateMangaStatus(
       userId: userId,
       mangaId: widget.manga.id,
       readingStatus: newStatus.value,
     );
-
+    FirebaseService().updateMangaStatusInFirestore(mangaId: widget.manga.id,readingStatus: newStatus.value);
     setState(() {
       selectedStatus = newStatus;
       widget.manga.status = newStatus;

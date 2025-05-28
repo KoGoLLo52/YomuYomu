@@ -14,42 +14,56 @@ class LoginRegisterDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isWideScreen = MediaQuery.of(context).size.width > 600;
+    final dialogWidth =
+        isWideScreen ? 600.0 : MediaQuery.of(context).size.width * 0.9;
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: DefaultTabController(
-        length: 2,
-        child: SizedBox(
-          width: MediaQuery.of(context).size.width > 600 ? 600 : double.infinity,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 16),
-              const TabBar(
-                indicatorColor: Colors.cyan,
-                labelColor: Colors.cyan,
-                unselectedLabelColor: Colors.grey,
-                tabs: [
-                  Tab(text: 'Iniciar sesión'),
-                  Tab(text: 'Registrarse'),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 550),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: DefaultTabController(
+              length: 2,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const TabBar(
+                    indicatorColor: Colors.cyan,
+                    labelColor: Colors.cyan,
+                    unselectedLabelColor: Colors.grey,
+                    tabs: [
+                      Tab(text: 'Iniciar sesión'),
+                      Tab(text: 'Registrarse'),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: dialogWidth,
+                    height: 400,
+                    child: TabBarView(
+                      children: [
+                        LoginForm(onLoginSuccess: loadUserData),
+                        RegisterForm(
+                          onRegisterSuccess: loadUserData,
+                          saveUserToDatabase: saveUserToDatabase,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      "Cerrar",
+                      style: TextStyle(color: Colors.cyan),
+                    ),
+                  ),
                 ],
               ),
-              SizedBox(
-                height: 400,
-                child: TabBarView(
-                  children: [
-                    LoginForm(onLoginSuccess: loadUserData),
-                    RegisterForm(
-                      onRegisterSuccess: loadUserData,
-                      saveUserToDatabase: saveUserToDatabase,
-                    ),
-                  ],
-                ),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Cerrar"),
-              ),
-            ],
+            ),
           ),
         ),
       ),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:yomuyomu/Settings/global_settings.dart';
 import 'package:yomuyomu/DataBase/database_helper.dart';
-import 'package:yomuyomu/Account/helpers/user_session_helper.dart';
 import 'package:yomuyomu/Settings/models/settings_model.dart';
 
 class SettingsPresenter extends ChangeNotifier {
@@ -19,8 +18,6 @@ class SettingsPresenter extends ChangeNotifier {
 
   Future<void> loadSettings() async {
     try {
-      final userId = await UserSession.getStoredUserId();
-
       final settingsMap = await _dbHelper.getUserSettingsById(userId);
 
       if (settingsMap != null) {
@@ -31,7 +28,6 @@ class SettingsPresenter extends ChangeNotifier {
           language: 0,
           theme: 0,
           orientation: 0,
-          syncStatus: 0,
         );
         await _dbHelper.insertUserSettings(_settings!.toMap());
       }
@@ -77,7 +73,6 @@ class SettingsPresenter extends ChangeNotifier {
     int? theme,
     int? language,
     int? orientation,
-    int? syncStatus,
   }) async {
     if (_settings == null) await loadSettings();
     if (_settings == null) return;
@@ -87,7 +82,6 @@ class SettingsPresenter extends ChangeNotifier {
       theme: theme ?? _settings!.theme,
       language: language ?? _settings!.language,
       orientation: orientation ?? _settings!.orientation,
-      syncStatus: syncStatus ?? _settings!.syncStatus,
     );
 
     await updateSettings(updated);

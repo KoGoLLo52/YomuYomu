@@ -1,26 +1,19 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:uuid/uuid.dart';
-import 'package:yomuyomu/Account/helpers/user_session_helper.dart';
 import 'package:yomuyomu/DataBase/database_helper.dart';
+import 'package:yomuyomu/Settings/global_settings.dart';
 
 Future<void> insertBaseData() async {
   final db = DatabaseHelper();
   final uuid = Uuid();
 
-  final firebaseUser = FirebaseAuth.instance.currentUser;
-  final String userId = await UserSession.getStoredUserId(); 
-  final String email = firebaseUser?.email ?? 'local@example.com';
-  final String username = firebaseUser?.displayName ?? 'local_user';
-
   final existingUser = await db.getUserById(userId);
   if (existingUser == null) {
     await db.insertUser({
       'UserID': userId,
-      'Email': email,
-      'Username': username,
+      'Email': "local@local.a",
+      'Username': "local",
       'Icon': null,
       'CreationDate': DateTime.now().millisecondsSinceEpoch,
-      'SyncStatus': 0,
     });
     print('✅ Usuario insertado con el id $userId');
   }
@@ -64,7 +57,6 @@ Future<void> insertBaseData() async {
       'Language': 1,
       'Theme': 0,
       'Orientation': 0,
-      'SyncStatus': 0,
     });
     print('✅ UserSettings insertado con el id $userId');
   }

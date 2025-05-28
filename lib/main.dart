@@ -5,14 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:yomuyomu/Account/helpers/user_session_helper.dart';
+import 'package:yomuyomu/DataBase/firebase_helper.dart';
 
 import 'package:yomuyomu/Settings/global_settings.dart';
 import 'package:yomuyomu/firebase_options.dart';
 import 'package:yomuyomu/DataBase/database_helper.dart';
 import 'package:yomuyomu/DataBase/insert_base_data.dart';
 import 'package:yomuyomu/Account/views/account_view.dart';
-import 'package:yomuyomu/Mangas/views/history_view.dart';
 import 'package:yomuyomu/Mangas/views/library_view.dart';
 import 'package:yomuyomu/Settings/views/settings_view.dart';
 import 'package:yomuyomu/Settings/presenters/settings_presenter.dart';
@@ -21,25 +20,6 @@ import 'package:firebase_core/firebase_core.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    print('🔄 Inicializando Firebase...');
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    try {
-      await FirebaseAuth.instance
-          .authStateChanges()
-          .firstWhere((user) => user != null)
-          .timeout(const Duration(milliseconds: 50));
-      print('✅ Firebase inicializado correctamente.');
-    } catch (_) {
-      print('❌ Firebase timeouteado.');
-    }
-  } catch (e, st) {
-    print('❌ Error al inicializar Firebase: $e');
-    print(st);
-    return;
-  }
 
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     try {
@@ -70,9 +50,29 @@ Future<void> main() async {
     print(st);
   }
 
+  try {
+    print('🔄 Inicializando Firebase...');
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    try {
+      await FirebaseAuth.instance
+          .authStateChanges()
+          .firstWhere((user) => user != null)
+          .timeout(const Duration(milliseconds: 500));
+      print('✅ Firebase inicializado correctamente.');
+      FirebaseService().syncUserProgressWithFirestore();
+      FirebaseService().syncUserNotesWithFirestore();
+    } catch (_) {
+      print('❌ Firebase timeouteado.');
+    }
+  } catch (e, st) {
+    print('❌ Error al inicializar Firebase: $e');
+    print(st);
+    return;
+  }
+
   print('🚀 Ejecutando la aplicación...');
-  String userId = await UserSession.getStoredUserId();
-  print('Se inicio sesion con userId: $userId');
   runApp(
     ChangeNotifierProvider(
       create: (_) => SettingsPresenter(),
@@ -153,16 +153,10 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int currentIndex = 0;
 
-  final List<Widget> screenViews = const [
-    LibraryView(),
-    HistoryView(),
-    AccountView(),
-    SettingsView(),
-  ];
-
   final List<String> screenTitles = const [
     "Library",
     "History",
+    "Favorite",
     "Account",
     "Settings",
   ];
@@ -171,6 +165,23 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     setState(() {
       currentIndex = index;
     });
+  }
+
+  Widget _getCurrentScreenView() {
+    switch (currentIndex) {
+      case 0:
+        return LibraryView(key: const ValueKey("library_0"), viewMode: 0);
+      case 1:
+        return LibraryView(key: const ValueKey("library_1"), viewMode: 1);
+      case 2:
+        return LibraryView(key: const ValueKey("library_2"), viewMode: 2);
+      case 3:
+        return const AccountView();
+      case 4:
+        return const SettingsView();
+      default:
+        return const SizedBox();
+    }
   }
 
   Widget _buildNavigationDrawer(BuildContext context, bool isWideScreen) {
@@ -188,6 +199,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           label: Text('History'),
         ),
         NavigationRailDestination(
+          icon: Icon(Icons.star),
+          label: Text('Favorite'),
+        ),
+        NavigationRailDestination(
           icon: Icon(Icons.account_circle),
           label: Text('Account'),
         ),
@@ -197,6 +212,22 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         ),
       ],
     );
+  }
+
+  Icon _getIconForScreen(int index) {
+    switch (index) {
+      case 0:
+        return const Icon(Icons.library_books);
+      case 1:
+        return const Icon(Icons.history);
+      case 2:
+        return const Icon(Icons.star);
+      case 3:
+        return const Icon(Icons.account_circle);
+      case 4:
+      default:
+        return const Icon(Icons.settings);
+    }
   }
 
   @override
@@ -241,27 +272,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           body: Row(
             children: [
               if (isWideScreen) _buildNavigationDrawer(context, true),
-              Expanded(
-                child: IndexedStack(index: currentIndex, children: screenViews),
-              ),
+              Expanded(child: _getCurrentScreenView()),
             ],
           ),
         );
       },
     );
-  }
-
-  Icon _getIconForScreen(int index) {
-    switch (index) {
-      case 0:
-        return const Icon(Icons.library_books);
-      case 1:
-        return const Icon(Icons.history);
-      case 2:
-        return const Icon(Icons.account_circle);
-      case 3:
-      default:
-        return const Icon(Icons.settings);
-    }
   }
 }

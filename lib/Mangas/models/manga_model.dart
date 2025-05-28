@@ -100,10 +100,7 @@ class MangaModel {
               : ReadingStatus.toRead),
       isFavorited: isFavorited ?? (map['IsFavorited'] == 1),
       lastChapterRead: lastChapterRead ?? 0,
-      lastReadDate:
-          map['LastReadDate'] != null
-              ? DateTime.fromMillisecondsSinceEpoch(map['LastReadDate'] as int)
-              : null,
+      lastReadDate: lastReadDate,
     );
   }
 }

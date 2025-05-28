@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:yomuyomu/DataBase/database_helper.dart';
+import 'package:yomuyomu/DataBase/firebase_helper.dart';
 import 'package:yomuyomu/Mangas/models/manga_model.dart';
 import 'package:yomuyomu/Mangas/models/usernote_model.dart';
+import 'package:yomuyomu/Settings/global_settings.dart';
 
 class NotesTab extends StatefulWidget {
   final MangaModel manga;
@@ -14,10 +16,10 @@ class NotesTab extends StatefulWidget {
 }
 
 class _NotesTabState extends State<NotesTab> {
+  final _db = DatabaseHelper.instance;
   late final TextEditingController _notesController;
   double _rating = 0;
   UserNote? _userNote;
-  String _userId = 'local';
   bool _isLoading = true;
 
   @override
@@ -29,26 +31,22 @@ class _NotesTabState extends State<NotesTab> {
 
   Future<void> _initialize() async {
     try {
-      final db = DatabaseHelper.instance;
-      final fetchedUserId = await db.getSingleUserID();
-      _userId = fetchedUserId ?? 'local';
-      final note = await db.getUserNote(_userId, widget.manga.id);
+      final note = await _db.getUserNote(userId, widget.manga.id);
 
       if (mounted) {
         setState(() {
           _userNote =
               note ??
               UserNote(
-                userId: _userId,
+                userId: userId,
                 mangaId: widget.manga.id,
                 personalComment: '',
                 personalRating: 0,
                 isFavorited: false,
                 lastEdited: DateTime.now(),
-                syncStatus: 0,
               );
-          _notesController.text = _userNote!.personalComment!;
-          _rating = _userNote!.personalRating!;
+          _notesController.text = _userNote?.personalComment ?? "";
+          _rating = _userNote?.personalRating ?? 0;
           _isLoading = false;
         });
       }
@@ -66,16 +64,16 @@ class _NotesTabState extends State<NotesTab> {
     final db = DatabaseHelper.instance;
 
     _userNote = UserNote(
-      userId: _userNote!.userId,
+      userId: userId,
       mangaId: _userNote!.mangaId,
       personalComment: _notesController.text,
       personalRating: _rating,
       isFavorited: _userNote!.isFavorited,
       lastEdited: DateTime.now(),
-      syncStatus: 1,
     );
 
     await db.insertOrUpdateUserNote(_userNote!);
+    FirebaseService().insertUserNotesToFirestore(_userNote!.toMap());
     if (mounted) Navigator.pop(context);
   }
 

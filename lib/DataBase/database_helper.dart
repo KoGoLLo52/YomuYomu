@@ -4,6 +4,7 @@ import 'package:path/path.dart';
 import 'package:yomuyomu/Mangas/models/genre_model.dart';
 import 'package:yomuyomu/Mangas/models/manga_model.dart';
 import 'package:yomuyomu/Mangas/models/usernote_model.dart';
+import 'package:yomuyomu/Settings/global_settings.dart';
 
 class DatabaseHelper {
   static const _databaseName = "yomuyomu.db";
@@ -43,7 +44,6 @@ class DatabaseHelper {
         Username TEXT NOT NULL,
         Icon TEXT,
         CreationDate INTEGER NOT NULL,
-        SyncStatus INTEGER DEFAULT 0
       );
     ''');
 
@@ -69,7 +69,6 @@ class DatabaseHelper {
         StartPublicationDate INTEGER NOT NULL,
         NextPublicationDate INTEGER,
         Chapters INTEGER NOT NULL,
-        SyncStatus INTEGER DEFAULT 0,
         FOREIGN KEY (AuthorID) REFERENCES Author(AuthorID),
         FOREIGN KEY (UserID) REFERENCES User(UserID)
       );
@@ -85,7 +84,6 @@ class DatabaseHelper {
         Synopsis TEXT,
         CoverImage TEXT,
         PublicationDate INTEGER,
-        SyncStatus INTEGER DEFAULT 0,
         FOREIGN KEY (MangaID) REFERENCES Manga(MangaID)
       );
     ''');
@@ -96,7 +94,6 @@ class DatabaseHelper {
         ChapterID TEXT NOT NULL,
         ImagePath TEXT NOT NULL,
         PageNumber INTEGER NOT NULL,
-        SyncStatus INTEGER DEFAULT 0,
         FOREIGN KEY (ChapterID) REFERENCES Chapter(ChapterID) ON DELETE CASCADE
       );
     ''');
@@ -123,7 +120,6 @@ class DatabaseHelper {
         UserID TEXT,
         PanelID TEXT,
         LastReadDate INTEGER,
-        SyncStatus INTEGER DEFAULT 0,
         PRIMARY KEY (UserID, PanelID),
         FOREIGN KEY (UserID) REFERENCES User(UserID),
         FOREIGN KEY (PanelID) REFERENCES Panel(PanelID) 
@@ -139,7 +135,6 @@ class DatabaseHelper {
         IsFavorited INTEGER DEFAULT 0,
         ReadingStatus INTEGER DEFAULT 0,
         LastEdited INTEGER,
-        SyncStatus INTEGER DEFAULT 0,
         PRIMARY KEY (UserID, MangaID),
         FOREIGN KEY (UserID) REFERENCES User(UserID) ON DELETE CASCADE,
         FOREIGN KEY (MangaID) REFERENCES Manga(MangaID) ON DELETE CASCADE
@@ -152,7 +147,6 @@ class DatabaseHelper {
         Language INTEGER DEFAULT 0,
         Theme INTEGER DEFAULT 0,
         Orientation INTEGER DEFAULT 0,
-        SyncStatus INTEGER DEFAULT 0,
         FOREIGN KEY (UserID) REFERENCES User(UserID)
       );
     ''');
@@ -269,8 +263,6 @@ class DatabaseHelper {
   Future<List<Map<String, dynamic>>> getAllGenreManga() =>
       queryAll('GenreManga');
 
-  Future<int> insertUserProgress(Map<String, dynamic> data) =>
-      insert('UserProgress', data);
   Future<List<Map<String, dynamic>>> getAllUserProgress() =>
       queryAll('UserProgress');
   Future<Map<String, dynamic>?> getUserProgressById(String id) =>
@@ -451,6 +443,17 @@ class DatabaseHelper {
     );
   }
 
+  Future<void> insertOrUpdateUserNoteMap(
+    Map<String, dynamic> userNoteData,
+  ) async {
+    final db = await database;
+    await db.insert(
+      'UserNote',
+      userNoteData,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
   Future<void> deletePanelsByChapterId(String chapterId) async {
     final db = await database;
 
@@ -546,72 +549,6 @@ class DatabaseHelper {
     return null;
   }
 
-  Future<void> migrateUserData(String oldUserId, String newUserId) async {
-  final db = await database;
-
-  await db.transaction((txn) async {
-    final oldUserRecords = await txn.query(
-      'User',
-      where: 'UserID = ?',
-      whereArgs: [oldUserId],
-    );
-
-    if (oldUserRecords.isEmpty) {
-      print('El usuario con ID $oldUserId no existe en la tabla User. No se realizará la migración.');
-      return;
-    }
-
-    final oldUser = oldUserRecords.first;
-    final newUser = Map<String, dynamic>.from(oldUser);
-    newUser['UserID'] = newUserId;
-
-    final existingNewUser = await txn.query(
-      'User',
-      where: 'UserID = ?',
-      whereArgs: [newUserId],
-    );
-
-    if (existingNewUser.isEmpty) {
-      await txn.insert('User', newUser);
-    } else {
-      print('El usuario con ID $newUserId ya existe en la tabla User. Se usará ese registro.');
-    }
-
-    final tablesToUpdate = [
-      'Manga',
-      'UserProgress',
-      'UserNote',
-      'UserSettings',
-    ];
-
-    for (final table in tablesToUpdate) {
-      if (table == 'UserSettings') {
-        final existingNewRecord = await txn.query(
-          table,
-          where: 'UserID = ?',
-          whereArgs: [newUserId],
-        );
-        if (existingNewRecord.isNotEmpty) {
-          print('El registro en $table para UserID $newUserId ya existe. Se omite la migración para este caso.');
-          await txn.delete(table, where: 'UserID = ?', whereArgs: [oldUserId]);
-          continue;
-        }
-      }
-      
-      await txn.update(
-        table,
-        {'UserID': newUserId},
-        where: 'UserID = ?',
-        whereArgs: [oldUserId],
-      );
-    }
-
-    final countDeleted = await txn.delete('User', where: 'UserID = ?', whereArgs: [oldUserId]);
-    print('Migración completada: se migró el usuario $oldUserId a $newUserId. Registros borrados en User: $countDeleted.');
-  });
-}
-
-
   Future<List<String>> getFavoriteMangaCovers(String userId) async {
     final db = await database;
     final List<Map<String, dynamic>> results = await db.rawQuery(
@@ -630,6 +567,54 @@ class DatabaseHelper {
         .map((row) => row['CoverImage'] as String)
         .where((cover) => cover.isNotEmpty)
         .toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getAllLocalUserProgress() async {
+    final db = await database;
+
+    final List<Map<String, dynamic>> result = await db.query(
+      'UserProgress',
+      where: 'UserID = ?',
+      whereArgs: [userId],
+    );
+
+    return result;
+  }
+
+  Future<List<Map<String, dynamic>>> getAllLocalUserNotes() async {
+    final db = await database;
+
+    final List<Map<String, dynamic>> result = await db.query(
+      'UserNote',
+      where: 'UserID = ?',
+      whereArgs: [userId],
+    );
+
+    return result;
+  }
+
+  Future<Set<String>> getAllLocalMangaIDs() async {
+    final db = await database;
+    final result = await db.query('Manga', columns: ['MangaID']);
+    return result.map((row) => row['MangaID'] as String).toSet();
+  }
+
+  Future<void> insertUserProgress(Map<String, dynamic> userProgressData) async {
+    final db = await database;
+    final dataToInsert = Map<String, dynamic>.from(userProgressData)
+      ..['UserID'] = userId;
+
+    await db.insert(
+      'UserProgress',
+      dataToInsert,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<Set<String>> getAllLocalPanelIDs() async {
+    final db = await database;
+    final result = await db.query('Panel', columns: ['PanelID']);
+    return result.map((row) => row['PanelID'] as String).toSet();
   }
 
   Future<String?> getSingleUserID() async {

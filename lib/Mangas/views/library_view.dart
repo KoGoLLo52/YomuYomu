@@ -18,7 +18,8 @@ Map<ReadingStatus, bool> filterStatus = {
 };
 
 class LibraryView extends StatefulWidget {
-  const LibraryView({super.key});
+  final int viewMode;
+  const LibraryView({super.key, required this.viewMode});
 
   @override
   State<LibraryView> createState() => _LibraryViewState();
@@ -28,6 +29,8 @@ class _LibraryViewState extends State<LibraryView>
     implements LibraryViewContract {
   late final LibraryPresenter libraryPresenter;
   late final TextEditingController searchController;
+
+  bool _dataLoaded = false;
 
   List<MangaModel> mangas = [];
   Map<String, Author> authors = {};
@@ -39,8 +42,30 @@ class _LibraryViewState extends State<LibraryView>
     super.initState();
     libraryPresenter = LibraryPresenter(this);
     searchController = TextEditingController();
-    libraryPresenter.loadMangas();
-    _loadGenresAndMangas();
+
+    _loadData();
+  }
+
+  void _loadData() async {
+    if (!_dataLoaded) {
+      await libraryPresenter.loadMangas();
+      await _loadGenresAndMangas();
+      _dataLoaded = true;
+    }
+    _applyViewModeBehavior();
+  }
+
+  void _applyViewModeBehavior() {
+    switch (widget.viewMode) {
+      case 0:
+        break;
+      case 1:
+        libraryPresenter.sortBy(3);
+        break;
+      case 2:
+        libraryPresenter.filterByIsFavorited();
+        break;
+    }
   }
 
   Future<void> _loadGenresAndMangas() async {
@@ -134,7 +159,7 @@ class _LibraryViewState extends State<LibraryView>
     );
   }
 
- void _openMangaDetail(MangaModel selectedManga) {
+  void _openMangaDetail(MangaModel selectedManga) {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => MangaDetailView(manga: selectedManga)),
@@ -239,6 +264,8 @@ class _LibraryViewState extends State<LibraryView>
         .take(3)
         .join(" • ");
     final authorName = authors[manga.authorId]?.name ?? manga.authorId;
+    final lastRead =
+        manga.lastReadDate != null ? (manga.lastReadDate) : "Unknown";
 
     return GestureDetector(
       onTap: () => _openMangaDetail(manga),
@@ -300,6 +327,13 @@ class _LibraryViewState extends State<LibraryView>
                         const SizedBox(width: 4),
                         Text("Pg: ${manga.lastChapterRead}"),
                       ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Last read: $lastRead",
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.grey),
                     ),
                   ],
                 ),

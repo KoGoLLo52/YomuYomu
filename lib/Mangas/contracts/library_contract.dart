@@ -13,6 +13,7 @@ abstract class LibraryViewContract {
 abstract class LibraryPresenterContract {
   void loadMangas();
   void filterByStatus(List<ReadingStatus> status);
+  void filterByIsFavorited();
   void filterByGenres(List<String> genres);
   void sortBy(int criteria);
 }

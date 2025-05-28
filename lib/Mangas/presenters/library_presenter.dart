@@ -7,18 +7,17 @@ import 'package:path_provider/path_provider.dart';
 import 'package:yomuyomu/Mangas/contracts/library_contract.dart';
 import 'package:yomuyomu/Mangas/enums/reading_status.dart';
 import 'package:yomuyomu/Mangas/helpers/event_bus_helpder.dart';
-import 'package:yomuyomu/Account/helpers/user_session_helper.dart';
 import 'package:yomuyomu/Mangas/models/author_model.dart';
 import 'package:yomuyomu/Mangas/models/chapter_model.dart';
 import 'package:yomuyomu/Mangas/models/manga_model.dart';
 import 'package:yomuyomu/DataBase/database_helper.dart';
 import 'package:yomuyomu/Mangas/models/panel_model.dart';
 import 'package:yomuyomu/Mangas/models/usernote_model.dart';
+import 'package:yomuyomu/Settings/global_settings.dart';
 
 class LibraryPresenter implements LibraryPresenterContract {
   final LibraryViewContract view;
   final DatabaseHelper _db = DatabaseHelper.instance;
-  String? _userId;
 
   List<MangaModel> _allMangas = [];
   List<MangaModel> _filtered = [];
@@ -26,7 +25,7 @@ class LibraryPresenter implements LibraryPresenterContract {
 
   StreamSubscription<String>? _eventSub;
 
-  LibraryPresenter(this.view, {String? userId}) : _userId = userId {
+  LibraryPresenter(this.view) {
     startListeningEvents();
   }
 
@@ -36,7 +35,6 @@ class LibraryPresenter implements LibraryPresenterContract {
       view.showLoading();
 
       final mangaData = await _db.getAllMangas();
-      final userId = await UserSession.getStoredUserId();
 
       _allMangas = await Future.wait(
         mangaData.map((map) async {
@@ -95,6 +93,12 @@ class LibraryPresenter implements LibraryPresenterContract {
   }
 
   @override
+  void filterByIsFavorited() {
+    _filtered = _allMangas.where((m) => m.isFavorited).toList();
+    view.updateMangaList(_filtered);
+  }
+
+  @override
   void filterByGenres(List<String> genres) {
     _filtered = _allMangas.where((m) => m.genres.any(genres.contains)).toList();
     view.updateMangaList(_filtered);
@@ -131,6 +135,9 @@ class LibraryPresenter implements LibraryPresenterContract {
       case 2:
         sorted.sort((a, b) => b.rating.compareTo(a.rating));
         break;
+      case 3:
+        sorted.sort((a,b) => b.lastReadDate!.compareTo(a.lastReadDate!));
+        break;
     }
 
     view.updateMangaList(sorted);
@@ -142,7 +149,6 @@ class LibraryPresenter implements LibraryPresenterContract {
   }
 
   Future<void> updateMangaStatus(String mangaId, ReadingStatus status) async {
-    final userId = await UserSession.getStoredUserId();
     await _db.updateMangaStatus(
       userId: userId,
       mangaId: mangaId,
@@ -152,7 +158,6 @@ class LibraryPresenter implements LibraryPresenterContract {
   }
 
   Future<void> toggleFavoriteStatus(MangaModel manga) async {
-    final userId = await UserSession.getStoredUserId();
     final newStatus = !manga.isFavorited;
 
     // Actualizar en la base de datos
@@ -166,7 +171,6 @@ class LibraryPresenter implements LibraryPresenterContract {
       personalComment: existingNote?.personalComment,
       personalRating: existingNote?.personalRating,
       lastEdited: DateTime.now(),
-      syncStatus: 0,
     );
 
     await _db.insertOrUpdateUserNote(note);
@@ -208,7 +212,6 @@ class LibraryPresenter implements LibraryPresenterContract {
     int? volume;
     DateTime? publicationDate;
     List<String> genres = [];
-    _userId = await UserSession.getStoredUserId();
     final regex = RegExp(
       r'^(.*?)\s+v(\d+)\s+\((\d{4})\)\s+\((.*?)\)\s+\((.*?)\)\.cbz$',
       caseSensitive: false,
@@ -232,7 +235,7 @@ class LibraryPresenter implements LibraryPresenterContract {
         id: mangaId,
         title: title,
         authorId: 'unknown',
-        userId: _userId!,
+        userId: userId,
         genres: genres,
         synopsis: 'Descripción no disponible.',
         rating: 0.0,
@@ -242,7 +245,6 @@ class LibraryPresenter implements LibraryPresenterContract {
 
       await _db.insertManga(manga.toMap());
 
-      final userId = await UserSession.getStoredUserId();
       final note = await _db.getUserNote(userId, manga.id);
       if (note == null) {
         await _db.insertOrUpdateUserNote(
@@ -251,7 +253,6 @@ class LibraryPresenter implements LibraryPresenterContract {
             mangaId: manga.id,
             isFavorited: false,
             readingStatus: ReadingStatus.toRead,
-            syncStatus: 0,
             lastEdited: DateTime.now(),
           ),
         );

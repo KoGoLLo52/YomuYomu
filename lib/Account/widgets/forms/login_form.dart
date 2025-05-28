@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:yomuyomu/Account/helpers/user_session_helper.dart';
-import 'package:yomuyomu/DataBase/database_helper.dart';
+import 'package:yomuyomu/DataBase/firebase_helper.dart';
 
 class LoginForm extends StatefulWidget {
   final VoidCallback onLoginSuccess;
@@ -44,17 +43,8 @@ class _LoginFormState extends State<LoginForm> {
         context,
       ).showSnackBar(const SnackBar(content: Text('Sesión iniciada')));
 
-      final oldLocalId = await UserSession.getStoredUserId();
-      final newFirebaseId = firebaseUser.uid;
-
-      if (oldLocalId != newFirebaseId) {
-        await DatabaseHelper.instance.migrateUserData(
-          oldLocalId,
-          newFirebaseId,
-        );
-        await UserSession.clear();
-      }
-
+      FirebaseService().syncUserNotesWithFirestore();
+      FirebaseService().syncUserProgressWithFirestore();
       widget.onLoginSuccess();
     } catch (e) {
       if (!mounted) return;

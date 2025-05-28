@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:yomuyomu/Account/contracts/account_contract.dart';
@@ -14,7 +15,8 @@ class AccountView extends StatefulWidget {
   State<AccountView> createState() => _AccountViewState();
 }
 
-class _AccountViewState extends State<AccountView> implements AccountViewContract {
+class _AccountViewState extends State<AccountView>
+    implements AccountViewContract {
   late final AccountPresenterContract _presenter;
   late final StreamSubscription<User?> _authSubscription;
 
@@ -30,11 +32,7 @@ class _AccountViewState extends State<AccountView> implements AccountViewContrac
 
       if (user != null) {
         _presenter.loadUserData();
-      } else {
-        setState(() {
-          _account = null;
-        });
-      }
+      } 
     });
   }
 
@@ -47,20 +45,21 @@ class _AccountViewState extends State<AccountView> implements AccountViewContrac
   void _showLoginRegisterDialog() {
     showDialog(
       context: context,
-      builder: (_) => LoginRegisterDialog(
-        loadUserData: _presenter.loadUserData,
-        saveUserToDatabase: _presenter.saveUserToDatabase,
-      ),
+      builder:
+          (_) => LoginRegisterDialog(
+            loadUserData: _presenter.loadUserData,
+            saveUserToDatabase: _presenter.saveUserToDatabase,
+          ),
     );
   }
 
   Future<void> _handleLogout() async {
-    await _presenter.logout(); 
+    await _presenter.logout();
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Sesión cerrada')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Sesión cerrada')));
   }
 
   @override
@@ -80,32 +79,47 @@ class _AccountViewState extends State<AccountView> implements AccountViewContrac
               "Actividad",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            Text("Género más leído: ${_account?.mostReadGenre ?? ''}"),
-            Text("Autor más leído: ${_account?.mostReadAuthor ?? ''}"),
             const SizedBox(height: 12),
             const Text("Favoritos:", style: TextStyle(fontSize: 16)),
             _account == null || _account!.favoriteMangaCovers.isEmpty
                 ? const Text("No tienes mangas favoritos.")
                 : SizedBox(
-                    height: 120,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      children: _account!.favoriteMangaCovers.map((url) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              url,
-                              width: 100,
-                              height: 150,
-                              fit: BoxFit.cover,
+                  height: 120,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children:
+                        _account!.favoriteMangaCovers.map((path) {
+                          final isLocal =
+                              path.startsWith('file:/') ||
+                              path.contains(
+                                r':\',
+                              ); 
+
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4.0,
                             ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child:
+                                  isLocal
+                                      ? Image.file(
+                                        File(path),
+                                        width: 100,
+                                        height: 150,
+                                        fit: BoxFit.cover,
+                                      )
+                                      : Image.network(
+                                        path,
+                                        width: 100,
+                                        height: 150,
+                                        fit: BoxFit.cover,
+                                      ),
+                            ),
+                          );
+                        }).toList(),
                   ),
+                ),
             const SizedBox(height: 12),
             Text("Mangas terminados: ${_account?.finishedMangasCount ?? 0}"),
           ],
@@ -129,4 +143,3 @@ class _AccountViewState extends State<AccountView> implements AccountViewContrac
     super.dispose();
   }
 }
-

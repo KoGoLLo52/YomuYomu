@@ -13,38 +13,56 @@ class UserAvatarWidget extends StatelessWidget {
     super.key,
   });
 
+  bool _isEmailValid(String? email) {
+    return email != null &&
+        email != ('local@local.a') &&
+        email.trim().isNotEmpty;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final bool isLoggedIn = account != null && _isEmailValid(account!.email);
 
     return Row(
       children: [
-        CircleAvatar(radius: 40),
+        const CircleAvatar(radius: 40),
         const SizedBox(width: 16),
         Expanded(
-          child: account != null
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      account!.username,
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                    GestureDetector(
-                      onTap: onLogout,
-                      child: Text(
-                        account!.email,
-                        style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
+          child:
+              isLoggedIn
+                  ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        account!.username,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: onLogout,
+                        child: Text(
+                          account!.email,
+                          style: const TextStyle(
+                            color: Colors.blue,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                  : GestureDetector(
+                    onTap: onLoginRegister,
+                    child: const Text(
+                      'Iniciar sesión / Registrarse',
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.blue,
+                        decoration: TextDecoration.underline,
                       ),
                     ),
-                  ],
-                )
-              : GestureDetector(
-                  onTap: onLoginRegister,
-                  child: const Text(
-                    'Iniciar sesión / Registrarse',
-                    style: TextStyle(fontSize: 18, color: Colors.blue, decoration: TextDecoration.underline),
                   ),
-                ),
         ),
       ],
     );

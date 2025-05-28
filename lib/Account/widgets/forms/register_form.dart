@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:yomuyomu/Account/helpers/user_session_helper.dart';
-import 'package:yomuyomu/DataBase/database_helper.dart';
+import 'package:yomuyomu/Account/widgets/terms_conditions.dart';
+import 'package:yomuyomu/DataBase/firebase_helper.dart';
 
 class RegisterForm extends StatefulWidget {
   final VoidCallback onRegisterSuccess;
@@ -34,22 +34,22 @@ class _RegisterFormState extends State<RegisterForm> {
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final username = _usernameController.text.trim();
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
-
     try {
-      final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
+      final authResult = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+          );
+
+      final firebaseUser = authResult.user;
+      if (firebaseUser == null) {
+        throw Exception('No se pudo crear el usuario.');
+      }
+
+      await widget.saveUserToDatabase(
+        _usernameController.text.trim(),
+        _emailController.text.trim(),
       );
-
-      final firebaseUser = cred.user;
-      if (firebaseUser == null)
-        throw Exception('No se pudo obtener el usuario de Firebase.');
-
-      await firebaseUser.updateDisplayName(username);
-      await widget.saveUserToDatabase(username, email);
 
       if (!mounted) return;
       Navigator.pop(context);
@@ -57,22 +57,13 @@ class _RegisterFormState extends State<RegisterForm> {
         const SnackBar(content: Text('Cuenta creada exitosamente')),
       );
 
-      final oldLocalId = await UserSession.getStoredUserId();
-      final newFirebaseId = firebaseUser.uid;
-
-      if (oldLocalId != newFirebaseId) {
-        await DatabaseHelper.instance.migrateUserData(
-          oldLocalId,
-          newFirebaseId,
-        );
-        await UserSession.clear();
-      }
-
+      FirebaseService().syncUserNotesWithFirestore();
+      FirebaseService().syncUserProgressWithFirestore();
       widget.onRegisterSuccess();
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context);
-      _showErrorDialog('No se pudo registrar:\n$e');
+      _showErrorDialog('No se pudo crear la cuenta:\n$e');
     }
   }
 
@@ -120,17 +111,54 @@ class _RegisterFormState extends State<RegisterForm> {
               decoration: const InputDecoration(labelText: 'Contraseña'),
               obscureText: true,
               validator:
-                  (value) => value!.isEmpty ? 'Ingrese su contraseña' : null,
+                  (value) => value!.isEmpty ? 'Ingrese una contraseña' : null,
             ),
             const SizedBox(height: 20),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.person_add),
-              label: const Text("Registrarse"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: _handleRegister,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.person_add),
+                  label: const Text("Registrarse"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.cyan,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: _handleRegister,
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      "By signing up, you agree to these ",
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const TermsAndConditions(),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        "terms and conditions",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.cyan,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                    const Text(
+                      ".",
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ],
         ),
