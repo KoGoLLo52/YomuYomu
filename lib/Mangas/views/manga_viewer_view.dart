@@ -225,7 +225,7 @@ class _MangaViewerState extends State<MangaViewer>
                                         ),
                                       ),
                                   separatorBuilder:
-                                      (_, __) => const SizedBox(height: 10),
+                                      (_, __) => const SizedBox(height: 5),
                                 )
                                 : ListView.separated(
                                   key: const PageStorageKey(

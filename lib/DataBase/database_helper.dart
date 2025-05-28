@@ -43,7 +43,7 @@ class DatabaseHelper {
         Email TEXT NOT NULL,
         Username TEXT NOT NULL,
         Icon TEXT,
-        CreationDate INTEGER NOT NULL,
+        CreationDate INTEGER NOT NULL
       );
     ''');
 
