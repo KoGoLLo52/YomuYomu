@@ -35,8 +35,8 @@ class LoginRegisterDialog extends StatelessWidget {
                     labelColor: Colors.cyan,
                     unselectedLabelColor: Colors.grey,
                     tabs: [
-                      Tab(text: 'Iniciar sesión'),
-                      Tab(text: 'Registrarse'),
+                      Tab(text: 'Login'),
+                      Tab(text: 'Register'),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -57,7 +57,7 @@ class LoginRegisterDialog extends StatelessWidget {
                   TextButton(
                     onPressed: () => Navigator.pop(context),
                     child: const Text(
-                      "Cerrar",
+                      "Close",
                       style: TextStyle(color: Colors.cyan),
                     ),
                   ),

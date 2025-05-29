@@ -98,13 +98,13 @@ class _NotesTabState extends State<NotesTab> {
             controller: _notesController,
             maxLines: 4,
             decoration: const InputDecoration(
-              labelText: 'Notas',
+              labelText: 'Notes',
               border: OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 20),
           const Text(
-            'Calificación:',
+            'Rating:',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           RatingBar.builder(
@@ -127,7 +127,7 @@ class _NotesTabState extends State<NotesTab> {
             child: ElevatedButton.icon(
               onPressed: _saveNotes,
               icon: const Icon(Icons.save),
-              label: const Text('Guardar'),
+              label: const Text('Save'),
             ),
           ),
         ],

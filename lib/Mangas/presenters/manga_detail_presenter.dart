@@ -38,7 +38,6 @@ class MangaDetailPresenter {
 
       for (final chapterData in chaptersData) {
         final chapter = Chapter.fromMap(chapterData);
-        // Cargar los paneles de este capítulo
         final panelsData = await _databaseHelper.getPanelsByChapterId(
           chapter.id,
         );

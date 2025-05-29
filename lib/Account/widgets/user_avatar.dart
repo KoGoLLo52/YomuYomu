@@ -55,7 +55,7 @@ class UserAvatarWidget extends StatelessWidget {
                   : GestureDetector(
                     onTap: onLoginRegister,
                     child: const Text(
-                      'Iniciar sesión / Registrarse',
+                      'Login / Register',
                       style: TextStyle(
                         fontSize: 18,
                         color: Colors.blue,

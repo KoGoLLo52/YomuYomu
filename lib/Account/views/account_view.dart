@@ -59,7 +59,7 @@ class _AccountViewState extends State<AccountView>
 
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Sesión cerrada')));
+    ).showSnackBar(const SnackBar(content: Text('Session closed')));
   }
 
   @override
@@ -76,13 +76,13 @@ class _AccountViewState extends State<AccountView>
             ),
             const Divider(height: 32),
             const Text(
-              "Actividad",
+              "Activity",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            const Text("Favoritos:", style: TextStyle(fontSize: 16)),
+            const Text("Favorites:", style: TextStyle(fontSize: 16)),
             _account == null || _account!.favoriteMangaCovers.isEmpty
-                ? const Text("No tienes mangas favoritos.")
+                ? const Text("You don't have any favorite manga.")
                 : SizedBox(
                   height: 120,
                   child: ListView(
@@ -112,7 +112,7 @@ class _AccountViewState extends State<AccountView>
                   ),
                 ),
             const SizedBox(height: 12),
-            Text("Mangas terminados: ${_account?.finishedMangasCount ?? 0}"),
+            Text("Finished mangas: ${_account?.finishedMangasCount ?? 0}"),
           ],
         ),
       ),

@@ -55,7 +55,7 @@ class _GenresTabState extends State<GenresTab> {
       child: Column(
         children: [
           const Text(
-            'Selecciona los géneros:',
+            'Choose the genres:',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
@@ -86,7 +86,7 @@ class _GenresTabState extends State<GenresTab> {
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: _saveGenres,
-            child: const Text('Guardar'),
+            child: const Text('Save'),
           ),
         ],
       ),

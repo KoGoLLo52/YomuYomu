@@ -15,23 +15,23 @@ class DeleteTab extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirmar eliminación'),
-        content: Text('¿Estás seguro de que deseas eliminar "${manga.title}"? Esta acción no se puede deshacer.'),
+        title: const Text('Confirm delete'),
+        content: Text("Are you sure you want to delete ${manga.title}? This action can't be undone"),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
+            child: const Text('Cancel'),
           ),
           ElevatedButton.icon(
             onPressed: () {
               Navigator.of(context).pop();
               onDeleteConfirmed(); 
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Manga eliminado: ${manga.title}')),
+                SnackBar(content: Text('Manga deleted: ${manga.title}')),
               );
             },
             icon: const Icon(Icons.delete_forever),
-            label: const Text('Eliminar'),
+            label: const Text('Delete'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
@@ -57,7 +57,7 @@ class DeleteTab extends StatelessWidget {
               Icon(Icons.warning_amber_rounded, size: 48, color: Colors.red.shade400),
               const SizedBox(height: 16),
               Text(
-                '¿Eliminar "${manga.title}"?',
+                'Delete "${manga.title}"?',
                 style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
@@ -65,7 +65,7 @@ class DeleteTab extends StatelessWidget {
               ElevatedButton.icon(
                 onPressed: () => _showConfirmationDialog(context),
                 icon: const Icon(Icons.delete_forever),
-                label: const Text('Eliminar manga'),
+                label: const Text('Delete manga'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),

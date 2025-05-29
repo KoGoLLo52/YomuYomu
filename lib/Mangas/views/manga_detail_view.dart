@@ -124,7 +124,7 @@ class _MangaDetailViewState extends State<MangaDetailView>
           icon: Icon(
             _sortTitleAsc ? Icons.sort_by_alpha : Icons.sort_by_alpha_outlined,
           ),
-          tooltip: "Ordenar por título (${_sortTitleAsc ? 'A-Z' : 'Z-A'})",
+          tooltip: "Sort by chapter (${_sortTitleAsc ? 'A-Z' : 'Z-A'})",
           onPressed: () {
             setState(() {
               _sortTitleAsc = !_sortTitleAsc;

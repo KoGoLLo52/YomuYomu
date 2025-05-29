@@ -344,8 +344,8 @@ class LibraryPresenter implements LibraryPresenterContract {
         panels: panels,
         title:
             isVolume
-                ? 'Vol. ${volume ?? 1} - Capítulo $chapterNum'
-                : 'Capítulo $chapterNum',
+                ? 'Vol. ${volume ?? 1} - Chapter $chapterNum'
+                : 'Chapter $chapterNum',
         publicationDate: publicationDate,
         coverUrl: isVolume ? volumeCoverPath : panels.first.filePath,
       );
