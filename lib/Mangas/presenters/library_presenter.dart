@@ -253,7 +253,7 @@ class LibraryPresenter implements LibraryPresenterContract {
             mangaId: manga.id,
             isFavorited: false,
             readingStatus: ReadingStatus.toRead,
-            lastEdited: DateTime.now(),
+            lastEdited: DateTime.fromMicrosecondsSinceEpoch(0),
           ),
         );
       }

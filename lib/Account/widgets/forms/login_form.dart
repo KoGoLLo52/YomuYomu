@@ -26,6 +26,12 @@ class _LoginFormState extends State<LoginForm> {
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
     try {
       final authResult = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
@@ -38,7 +44,8 @@ class _LoginFormState extends State<LoginForm> {
       }
 
       if (!mounted) return;
-      Navigator.pop(context);
+      Navigator.of(context).pop(); 
+
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Sesión iniciada')));
@@ -48,7 +55,7 @@ class _LoginFormState extends State<LoginForm> {
       widget.onLoginSuccess();
     } catch (e) {
       if (!mounted) return;
-      Navigator.pop(context);
+      Navigator.of(context).pop(); 
       _showErrorDialog('No se pudo iniciar sesión:\n$e');
     }
   }

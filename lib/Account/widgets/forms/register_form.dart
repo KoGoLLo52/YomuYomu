@@ -34,6 +34,12 @@ class _RegisterFormState extends State<RegisterForm> {
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
 
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
     try {
       final authResult = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
@@ -52,7 +58,8 @@ class _RegisterFormState extends State<RegisterForm> {
       );
 
       if (!mounted) return;
-      Navigator.pop(context);
+      Navigator.of(context).pop(); 
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Cuenta creada exitosamente')),
       );
@@ -62,7 +69,7 @@ class _RegisterFormState extends State<RegisterForm> {
       widget.onRegisterSuccess();
     } catch (e) {
       if (!mounted) return;
-      Navigator.pop(context);
+      Navigator.of(context).pop(); 
       _showErrorDialog('No se pudo crear la cuenta:\n$e');
     }
   }
